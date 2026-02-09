@@ -1,0 +1,39 @@
+{
+  "settings": {
+    "vat_rate": 0.19,
+    "vat_mode": "net",
+    "is_vat_liable": true,
+    "income_tax_method": "simple_brackets",
+    "basic_allowance": 11604.0,
+    "bracket_rates": [
+      [11604, 0.0],
+      [17005, 0.14],
+      [66760, 0.24],
+      [277825, 0.42],
+      [1e308, 0.45]
+    ]
+  },
+  "revenues": [
+    {
+      "amount": 4200.0,
+      "amount_type": "net"
+    },
+    {
+      "amount": 1000.0,
+      "amount_type": "net",
+      "vat_rate": 0.07
+    }
+  ],
+  "expenses": [
+    {
+      "amount": 250.0,
+      "amount_type": "net",
+      "is_business": true
+    },
+    {
+      "amount": 100.0,
+      "amount_type": "net",
+      "is_business": true
+    }
+  ]
+}
