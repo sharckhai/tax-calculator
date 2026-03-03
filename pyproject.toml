@@ -1,0 +1,27 @@
+[project]
+name = "income-calculator"
+version = "0.1.0"
+description = "Freelancer tax & VAT calculator for the German tax system"
+requires-python = ">=3.12"
+dependencies = [
+    "nicegui",
+    "rich",
+]
+
+[project.scripts]
+income-calculator = "income_calculator.app:run"
+income-cli = "income_calculator.cli:main"
+income-main = "income_calculator.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/income_calculator"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = ["pytest"]

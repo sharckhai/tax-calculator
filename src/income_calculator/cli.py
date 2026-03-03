@@ -6,7 +6,7 @@ CLI interface for the Freelancer Tax & VAT Calculator
 import json
 import sys
 from pathlib import Path
-from tax_calculator import LineItem, Settings, calc_month
+from .calculator import LineItem, Settings, calc_month
 
 
 def load_data_from_json(file_path: str) -> tuple[list[LineItem], list[LineItem], Settings]:

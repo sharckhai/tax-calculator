@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
 """
 Main script for Freelancer Tax & VAT Calculator
-Uses constants from constants/tax.py and constants/costs.py
+Interactive Rich CLI — all data entered by the user.
 """
 
 import sys
-from models import LineItem, Settings
-from tax_calculator import calc_month
-from constants.tax import tax_setting
-from constants.costs import (
-    monthly_fix_work,
-    monthly_fix,
-    monthly_fix_fun,
-    monthly_variable_recurring,
-    monthly_fix_honeygram
-)
+from .models import LineItem, Settings
+from .calculator import calc_month
+from .constants.tax import tax_setting
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -41,19 +34,46 @@ def create_settings_from_constants() -> Settings:
     )
 
 
-def create_expense_items_from_costs() -> list[LineItem]:
+def get_expenses_from_user() -> list[tuple[str, LineItem]]:
     """
-    Create expense LineItem objects from cost constants.
-    Uses monthly_fix_work as business expenses.
+    Get business expense information from user input.
+    Returns a list of tuples: (label, LineItem)
     """
     expenses = []
 
-    for name, amount in monthly_fix_work.items():
-        expenses.append(LineItem(
-            amount=amount,
-            amount_type="gross",
-            is_business=True
-        ))
+    print("\n" + "="*60)
+    print("BUSINESS EXPENSES INPUT")
+    print("="*60)
+    print("\nEnter your monthly business expenses (gross amounts).")
+    print("Type 'done' when finished.\n")
+
+    while True:
+        try:
+            print(f"\n--- Expense #{len(expenses) + 1} ---")
+            label = input("Label (or 'done'): ").strip()
+
+            if label.lower() == 'done':
+                break
+
+            amount_str = input("Amount (EUR, gross): ").strip()
+            amount = float(amount_str)
+
+            if amount <= 0:
+                print("Please enter a positive amount.")
+                continue
+
+            expenses.append((
+                label,
+                LineItem(amount=amount, amount_type="gross", is_business=True),
+            ))
+
+            print(f"Added: {label} — {format_currency(amount)} (gross)")
+
+        except ValueError:
+            print("Invalid input. Please enter a number or 'done'.")
+        except KeyboardInterrupt:
+            print("\n\nCancelled by user.")
+            sys.exit(0)
 
     return expenses
 
@@ -160,7 +180,7 @@ def get_revenues_from_user() -> list[tuple[LineItem, float, int]]:
     return revenues
 
 
-def print_results(results: dict, revenue_items: list[tuple[LineItem, float, int]]):
+def print_results(results: dict, revenue_items: list[tuple[LineItem, float, int]], expense_items: list[tuple[str, LineItem]]):
     """
     Print calculation results in a readable format with colors.
     """
@@ -199,10 +219,10 @@ def print_results(results: dict, revenue_items: list[tuple[LineItem, float, int]
     expense_table.add_column("Item", style="yellow")
     expense_table.add_column("Amount (Gross)", justify="right", style="bold yellow")
 
-    for name, amount in monthly_fix_work.items():
-        expense_table.add_row(name, format_currency(amount))
+    for label, item in expense_items:
+        expense_table.add_row(label, format_currency(item.amount))
 
-    total_expenses = sum(monthly_fix_work.values())
+    total_expenses = sum(item.amount for _, item in expense_items)
     expense_table.add_section()
     expense_table.add_row("[bold]TOTAL[/bold]", f"[bold yellow]{format_currency(total_expenses)}[/bold yellow]")
     console.print(expense_table)
@@ -294,57 +314,6 @@ def print_results(results: dict, revenue_items: list[tuple[LineItem, float, int]
 
     console.print(f"\n[dim italic]Set aside {format_currency(total_to_save)} from this month's revenue[/dim italic]\n")
 
-    # Private costs breakdown and final remaining cash
-    private_costs_table = Table(
-        title="[bold white]Private Costs & Final Cash[/bold white]",
-        box=box.ROUNDED,
-        border_style="white"
-    )
-    private_costs_table.add_column("Category", style="bold")
-    private_costs_table.add_column("Amount", justify="right", style="white")
-
-    # Calculate category totals
-    duty_total = sum(monthly_fix.values())
-    fun_total = sum(monthly_fix_fun.values())
-    car_total = sum(monthly_variable_recurring.values())
-    honeygram_total = sum(monthly_fix_honeygram.values())
-    total_private_costs = duty_total + fun_total + car_total + honeygram_total
-
-    private_costs_table.add_row("Duty (Housing, Insurance, etc.)", format_currency(duty_total))
-    private_costs_table.add_row("Fun (Streaming, etc.)", format_currency(fun_total))
-    private_costs_table.add_row("Car (Fuel, etc.)", format_currency(car_total))
-    private_costs_table.add_row("Honeygram (Infrastructure)", format_currency(honeygram_total))
-    private_costs_table.add_section()
-    private_costs_table.add_row("[bold]Total Private Costs[/bold]", f"[bold red]{format_currency(total_private_costs)}[/bold red]")
-
-    console.print(private_costs_table)
-
-    # Final remaining cash
-    cash_after_business = results['cash_left_est']
-    final_remaining = cash_after_business - total_private_costs
-
-    final_table = Table(
-        title="[bold white on green] FINAL REMAINING CASH [/bold white on green]",
-        box=box.DOUBLE,
-        border_style="bright_green",
-        show_header=False
-    )
-    final_table.add_column("Description", style="bold")
-    final_table.add_column("Amount", justify="right", style="bold")
-
-    final_table.add_row("Cash left after business expenses & taxes", f"[cyan]{format_currency(cash_after_business)}[/cyan]")
-    final_table.add_row("Private costs", f"[red]{format_currency(total_private_costs)}[/red]")
-    final_table.add_section()
-
-    remaining_style = "bold green" if final_remaining >= 0 else "bold red"
-    final_table.add_row(
-        "[bold white]REMAINING AFTER ALL COSTS[/bold white]",
-        f"[{remaining_style}]{format_currency(final_remaining)}[/{remaining_style}]"
-    )
-
-    console.print(final_table)
-    console.print()
-
 
 def main():
     """Main entry point."""
@@ -353,9 +322,6 @@ def main():
     # Load settings from constants
     settings = create_settings_from_constants()
 
-    # Create expense items from monthly_fix_work
-    expenses = create_expense_items_from_costs()
-
     # Get revenues from user (returns list of tuples)
     revenue_items = get_revenues_from_user()
 
@@ -363,14 +329,18 @@ def main():
         print("\nNo revenues entered. Exiting.")
         sys.exit(0)
 
+    # Get business expenses from user
+    expense_items = get_expenses_from_user()
+
     # Extract LineItems for calculation
     revenue_line_items = [item for item, _, _ in revenue_items]
+    expense_line_items = [item for _, item in expense_items]
 
     # Calculate
-    results = calc_month(revenue_line_items, expenses, settings)
+    results = calc_month(revenue_line_items, expense_line_items, settings)
 
     # Display results
-    print_results(results, revenue_items)
+    print_results(results, revenue_items, expense_items)
 
 
 if __name__ == "__main__":

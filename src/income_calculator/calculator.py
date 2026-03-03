@@ -4,7 +4,7 @@ Calculates VAT settlement, profit, and estimated income tax for freelancers.
 """
 
 from typing import Literal
-from models import LineItem, Settings
+from .models import LineItem, Settings
 
 
 def split_vat(amount: float, amount_type: Literal["gross", "net", "vat"], vat_rate: float) -> tuple[float, float, float]:
@@ -19,6 +19,8 @@ def split_vat(amount: float, amount_type: Literal["gross", "net", "vat"], vat_ra
     Returns:
         Tuple of (net, vat, gross)
     """
+    amount = amount or 0.0
+    vat_rate = vat_rate or 0.0
     if amount_type == "gross":
         gross = amount
         net = gross / (1 + vat_rate)

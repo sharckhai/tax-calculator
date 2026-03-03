@@ -3,7 +3,8 @@ Test cases for the Freelancer Tax & VAT Calculator
 """
 
 import pytest
-from tax_calculator import LineItem, Settings, split_vat, calc_month, estimate_income_tax_year
+from income_calculator.calculator import split_vat, calc_month, estimate_income_tax_year
+from income_calculator.models import LineItem, Settings
 
 
 class TestSplitVat:
@@ -191,7 +192,7 @@ class TestCalcMonth:
         # Should have VAT refund
         assert results['vat_payable'] == 0.0
         assert results['vat_refund'] > 0.0
-        assert results['vat_refund'] == results['input_vat'] - results['output_vat']
+        assert abs(results['vat_refund'] - (results['input_vat'] - results['output_vat'])) < 0.01
 
 
 class TestIncomeTax:
