@@ -1,11 +1,11 @@
-import type { MonthData, ArchivedMonth } from "./types";
+import type { MonthData } from "./types";
 
 const MONTH_PREFIX = "income-calc:month:";
 const ACTIVE_KEY = "income-calc:active";
-const ARCHIVE_PREFIX = "income-calc:archive:";
 
-// Legacy key for migration
+// Legacy keys for migration
 const LEGACY_CURRENT_KEY = "income-calc:current";
+const LEGACY_ARCHIVE_PREFIX = "income-calc:archive:";
 
 export function loadMonth(month: string): MonthData | null {
   const raw = localStorage.getItem(`${MONTH_PREFIX}${month}`);
@@ -43,8 +43,25 @@ export function setActiveMonth(month: string): void {
   localStorage.setItem(ACTIVE_KEY, month);
 }
 
+// Migrate archived months to regular months
+function migrateArchives() {
+  const keysToMigrate: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(LEGACY_ARCHIVE_PREFIX)) keysToMigrate.push(key);
+  }
+  for (const key of keysToMigrate) {
+    const raw = JSON.parse(localStorage.getItem(key)!);
+    const { results, archivedAt, ...monthData } = raw;
+    saveMonth(monthData as MonthData);
+    localStorage.removeItem(key);
+  }
+}
+
 // Convenience wrappers that operate on the active month
 export function loadCurrentMonth(): MonthData | null {
+  migrateArchives();
+
   // Migrate legacy single-key storage
   const legacy = localStorage.getItem(LEGACY_CURRENT_KEY);
   if (legacy) {
@@ -65,17 +82,13 @@ export function saveCurrentMonth(data: MonthData): void {
   setActiveMonth(data.month);
 }
 
-export function loadArchives(): ArchivedMonth[] {
-  const archives: ArchivedMonth[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(ARCHIVE_PREFIX)) {
-      archives.push(JSON.parse(localStorage.getItem(key)!));
-    }
+export function renameMonth(oldMonth: string, newMonth: string): void {
+  const data = loadMonth(oldMonth);
+  if (!data) return;
+  deleteMonth(oldMonth);
+  data.month = newMonth;
+  saveMonth(data);
+  if (getActiveMonth() === oldMonth) {
+    setActiveMonth(newMonth);
   }
-  return archives.sort((a, b) => b.month.localeCompare(a.month));
-}
-
-export function saveArchive(archive: ArchivedMonth): void {
-  localStorage.setItem(`${ARCHIVE_PREFIX}${archive.month}`, JSON.stringify(archive));
 }

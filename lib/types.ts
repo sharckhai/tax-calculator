@@ -59,7 +59,3 @@ export interface CalculationResult {
   savingsTotal: number;
 }
 
-export interface ArchivedMonth extends MonthData {
-  results: CalculationResult;
-  archivedAt: string;
-}

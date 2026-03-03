@@ -1,35 +1,30 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import type { MonthData, ArchivedMonth, Settings, RevenueItem, ExpenseItem } from "@/lib/types";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import type { MonthData, Settings, RevenueItem, ExpenseItem } from "@/lib/types";
 import { calcMonth } from "@/lib/calculator";
 import { createEmptyMonth } from "@/lib/defaults";
 import {
   loadCurrentMonth,
   saveMonth,
   loadAllMonths,
-  loadArchives,
-  saveArchive,
   setActiveMonth,
   deleteMonth,
+  renameMonth,
 } from "@/lib/storage";
 import { Sidebar } from "@/components/sidebar";
 import { MonthHeader } from "@/components/month-header";
 import { RevenueSection } from "@/components/revenue-section";
 import { ExpenseSection } from "@/components/expense-section";
 import { ResultsSummary } from "@/components/results-summary";
-import { ArchiveViewer } from "@/components/archive-viewer";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Archive } from "lucide-react";
+import { Menu, Save } from "lucide-react";
 
 export default function Page() {
   const [draftMonths, setDraftMonths] = useState<MonthData[]>([]);
   const [activeMonthKey, setActiveMonthKey] = useState<string>("");
-  const [archives, setArchives] = useState<ArchivedMonth[]>([]);
-  const [selectedArchive, setSelectedArchive] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout>>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -45,22 +40,9 @@ export default function Page() {
       setActiveMonthKey(fresh.month);
     }
     setDraftMonths(loadAllMonths());
-    setArchives(loadArchives());
   }, []);
 
   const monthData = draftMonths.find((m) => m.month === activeMonthKey) ?? null;
-
-  // Debounced auto-save
-  useEffect(() => {
-    if (!monthData) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      saveMonth({ ...monthData, lastModified: new Date().toISOString() });
-    }, 300);
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
-  }, [monthData]);
 
   const results = useMemo(() => {
     if (!monthData) return null;
@@ -93,7 +75,6 @@ export default function Page() {
     if (draftMonths.some((m) => m.month === month)) {
       setActiveMonthKey(month);
       setActiveMonth(month);
-      setSelectedArchive(null);
       return;
     }
     const newMonth = createEmptyMonth(month);
@@ -105,7 +86,31 @@ export default function Page() {
     setActiveMonth(month);
     setDraftMonths(loadAllMonths());
     setActiveMonthKey(month);
-    setSelectedArchive(null);
+  }
+
+  function handleDeleteMonth(month: string) {
+    deleteMonth(month);
+    const remaining = loadAllMonths();
+    if (month === activeMonthKey) {
+      if (remaining.length > 0) {
+        setActiveMonthKey(remaining[0].month);
+        setActiveMonth(remaining[0].month);
+      } else {
+        const fresh = createEmptyMonth();
+        saveMonth(fresh);
+        setActiveMonth(fresh.month);
+        setActiveMonthKey(fresh.month);
+      }
+    }
+    setDraftMonths(loadAllMonths());
+  }
+
+  function handleRenameMonth(oldMonth: string, newMonth: string) {
+    renameMonth(oldMonth, newMonth);
+    if (activeMonthKey === oldMonth) {
+      setActiveMonthKey(newMonth);
+    }
+    setDraftMonths(loadAllMonths());
   }
 
   function handleSelectMonth(month: string) {
@@ -114,29 +119,9 @@ export default function Page() {
     setSidebarOpen(false);
   }
 
-  function handleArchive() {
-    if (!monthData || !results) return;
-    const archived: ArchivedMonth = {
-      ...monthData,
-      results,
-      archivedAt: new Date().toISOString(),
-    };
-    saveArchive(archived);
-    deleteMonth(monthData.month);
-
-    // Switch to another draft or create a new one
-    const remaining = loadAllMonths();
-    if (remaining.length > 0) {
-      setActiveMonthKey(remaining[0].month);
-      setActiveMonth(remaining[0].month);
-    } else {
-      const fresh = createEmptyMonth();
-      saveMonth(fresh);
-      setActiveMonth(fresh.month);
-      setActiveMonthKey(fresh.month);
-    }
-    setDraftMonths(loadAllMonths());
-    setArchives(loadArchives());
+  function handleSave() {
+    if (!monthData) return;
+    saveMonth({ ...monthData, lastModified: new Date().toISOString() });
   }
 
   // Loading state
@@ -155,21 +140,15 @@ export default function Page() {
     handleExpensesChange([...recurring, ...items]);
   }
 
-  const selectedArchiveData = archives.find((a) => a.month === selectedArchive);
-
   const sidebarContent = (
     <Sidebar
       draftMonths={draftMonths}
       activeMonth={activeMonthKey}
-      archives={archives}
-      selectedArchive={selectedArchive}
       settings={monthData.settings}
       onSelectMonth={handleSelectMonth}
-      onSelectArchive={(month) => {
-        setSelectedArchive(month);
-        setSidebarOpen(false);
-      }}
       onCreateMonth={handleCreateMonth}
+      onDeleteMonth={handleDeleteMonth}
+      onRenameMonth={handleRenameMonth}
       onSettingsChange={handleSettingsChange}
     />
   );
@@ -200,42 +179,33 @@ export default function Page() {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto p-6 space-y-6">
-          {selectedArchiveData ? (
-            <ArchiveViewer
-              archive={selectedArchiveData}
-              onBack={() => setSelectedArchive(null)}
-            />
-          ) : (
-            <>
-              <MonthHeader month={monthData.month} />
+          <MonthHeader month={monthData.month} />
 
-              <RevenueSection
-                revenues={monthData.revenues}
-                onChange={handleRevenuesChange}
-              />
+          <RevenueSection
+            revenues={monthData.revenues}
+            onChange={handleRevenuesChange}
+          />
 
-              <ExpenseSection
-                title="Recurring Expenses"
-                isRecurring
-                expenses={recurring}
-                onChange={handleRecurringChange}
-              />
+          <ExpenseSection
+            title="Recurring Expenses"
+            isRecurring
+            expenses={recurring}
+            onChange={handleRecurringChange}
+          />
 
-              <ExpenseSection
-                title="One-Time Expenses"
-                isRecurring={false}
-                expenses={oneTime}
-                onChange={handleOneTimeChange}
-              />
+          <ExpenseSection
+            title="One-Time Expenses"
+            isRecurring={false}
+            expenses={oneTime}
+            onChange={handleOneTimeChange}
+          />
 
-              <ResultsSummary results={results} />
+          <ResultsSummary results={results} />
 
-              <Button onClick={handleArchive} className="w-full" variant="outline">
-                <Archive className="h-4 w-4 mr-2" />
-                Finish Month & Archive
-              </Button>
-            </>
-          )}
+          <Button onClick={handleSave} className="w-full" variant="outline">
+            <Save className="h-4 w-4 mr-2" />
+            Save
+          </Button>
         </div>
       </main>
     </div>
