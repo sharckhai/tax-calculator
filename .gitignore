@@ -14,3 +14,8 @@ build/
 *.swo
 .DS_Store
 data/
+
+# Next.js
+.next/
+out/
+node_modules/
