@@ -27,8 +27,13 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
           <CardTitle className="text-sm font-medium text-muted-foreground">Business Expenses</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold tabular-nums">{formatCurrency(results.expensesBusinessGrossTotal)}</p>
-          <p className="text-xs text-muted-foreground">Net: {formatCurrency(results.expensesBusinessNetTotal)}</p>
+          <p className="text-2xl font-bold tabular-nums">{formatCurrency(results.recurringExpensesGrossTotal)}</p>
+          <p className="text-xs text-muted-foreground">
+            Recurring (monthly)
+            {results.oneTimeExpensesGrossTotal > 0 && (
+              <> · One-time: {formatCurrency(results.oneTimeExpensesGrossTotal)}</>
+            )}
+          </p>
         </CardContent>
       </Card>
 

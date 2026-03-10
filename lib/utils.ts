@@ -14,6 +14,11 @@ export function formatCurrency(value: number): string {
   return currencyFormatter.format(value);
 }
 
+export function formatShortMonthLabel(month: string): string {
+  const [year, m] = month.split("-");
+  return new Date(Number(year), Number(m) - 1).toLocaleDateString("de-DE", { month: "short" });
+}
+
 export function formatMonthLabel(month: string): string {
   const [year, m] = month.split("-");
   const date = new Date(Number(year), Number(m) - 1);

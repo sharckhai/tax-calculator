@@ -36,6 +36,24 @@ export interface MonthData {
   lastModified: string;
 }
 
+export interface YearlyResult {
+  year: string;
+  monthCount: number;
+  months: { month: string; result: CalculationResult }[];
+  revenueNetTotal: number;
+  revenueGrossTotal: number;
+  expensesBusinessGrossTotal: number;
+  recurringExpensesGrossTotal: number;
+  oneTimeExpensesGrossTotal: number;
+  vatPayableTotal: number;
+  profitTotal: number;
+  incomeTaxTotal: number;
+  cashInTotal: number;
+  cashOutTotal: number;
+  cashLeftTotal: number;
+  savingsTotal: number;
+}
+
 export interface CalculationResult {
   revenueNetTotal: number;
   revenueVatTotal: number;
@@ -43,6 +61,8 @@ export interface CalculationResult {
   expensesBusinessNetTotal: number;
   expensesBusinessVatTotal: number;
   expensesBusinessGrossTotal: number;
+  recurringExpensesGrossTotal: number;
+  oneTimeExpensesGrossTotal: number;
   outputVat: number;
   inputVat: number;
   vatPayable: number;

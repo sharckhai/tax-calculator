@@ -73,6 +73,8 @@ export function calcMonth(monthData: MonthData): CalculationResult {
   let expensesBusinessNetTotal = 0;
   let expensesBusinessVatTotal = 0;
   let expensesBusinessGrossTotal = 0;
+  let recurringExpensesGrossTotal = 0;
+  let oneTimeExpensesGrossTotal = 0;
 
   for (const item of expensesBusiness) {
     const vatRate = item.vatRate ?? settings.vatRate;
@@ -80,6 +82,11 @@ export function calcMonth(monthData: MonthData): CalculationResult {
     expensesBusinessNetTotal += net;
     if (settings.isVatLiable) expensesBusinessVatTotal += vat;
     expensesBusinessGrossTotal += gross;
+    if (item.isRecurring) {
+      recurringExpensesGrossTotal += gross;
+    } else {
+      oneTimeExpensesGrossTotal += gross;
+    }
   }
 
   const outputVat = settings.isVatLiable ? revenueVatTotal : 0;
@@ -94,7 +101,7 @@ export function calcMonth(monthData: MonthData): CalculationResult {
   const incomeTaxMonthEst = incomeTaxYearEst / 12;
 
   const cashIn = revenueGrossTotal;
-  const cashOut = expensesBusinessGrossTotal + vatPayable + incomeTaxMonthEst;
+  const cashOut = recurringExpensesGrossTotal + vatPayable + incomeTaxMonthEst;
   const cashLeftEst = cashIn - cashOut;
 
   const savingsVat = vatPayable;
@@ -110,6 +117,8 @@ export function calcMonth(monthData: MonthData): CalculationResult {
     expensesBusinessNetTotal: r(expensesBusinessNetTotal),
     expensesBusinessVatTotal: r(expensesBusinessVatTotal),
     expensesBusinessGrossTotal: r(expensesBusinessGrossTotal),
+    recurringExpensesGrossTotal: r(recurringExpensesGrossTotal),
+    oneTimeExpensesGrossTotal: r(oneTimeExpensesGrossTotal),
     outputVat: r(outputVat),
     inputVat: r(inputVat),
     vatPayable: r(vatPayable),

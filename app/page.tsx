@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import type { MonthData, Settings, RevenueItem, ExpenseItem } from "@/lib/types";
 import { calcMonth } from "@/lib/calculator";
+import { calcYear, getAvailableYears } from "@/lib/yearly";
+import { YearDashboard } from "@/components/year-dashboard";
 import { createEmptyMonth } from "@/lib/defaults";
 import {
   loadCurrentMonth,
@@ -25,6 +27,8 @@ export default function Page() {
   const [draftMonths, setDraftMonths] = useState<MonthData[]>([]);
   const [activeMonthKey, setActiveMonthKey] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeView, setActiveView] = useState<"month" | "dashboard">("month");
+  const [dashboardYear, setDashboardYear] = useState(String(new Date().getFullYear()));
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -48,6 +52,13 @@ export default function Page() {
     if (!monthData) return null;
     return calcMonth(monthData);
   }, [monthData]);
+
+  const availableYears = useMemo(() => getAvailableYears(draftMonths), [draftMonths]);
+
+  const yearResult = useMemo(
+    () => activeView === "dashboard" ? calcYear(draftMonths, dashboardYear) : null,
+    [activeView, draftMonths, dashboardYear]
+  );
 
   const updateMonthData = useCallback(
     (partial: Partial<MonthData>) => {
@@ -81,6 +92,9 @@ export default function Page() {
     // Carry forward settings from the current month if available
     if (monthData) {
       newMonth.settings = { ...monthData.settings };
+      newMonth.expensesBusiness = monthData.expensesBusiness
+        .filter((e) => e.isRecurring)
+        .map((e) => ({ ...e, id: crypto.randomUUID() }));
     }
     saveMonth(newMonth);
     setActiveMonth(month);
@@ -116,6 +130,7 @@ export default function Page() {
   function handleSelectMonth(month: string) {
     setActiveMonthKey(month);
     setActiveMonth(month);
+    setActiveView("month");
     setSidebarOpen(false);
   }
 
@@ -124,13 +139,8 @@ export default function Page() {
     saveMonth({ ...monthData, lastModified: new Date().toISOString() });
   }
 
-  // Loading state
-  if (!monthData || !results) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  const recurring = monthData.expensesBusiness.filter((e) => e.isRecurring);
-  const oneTime = monthData.expensesBusiness.filter((e) => !e.isRecurring);
+  const recurring = monthData?.expensesBusiness.filter((e) => e.isRecurring) ?? [];
+  const oneTime = monthData?.expensesBusiness.filter((e) => !e.isRecurring) ?? [];
 
   function handleRecurringChange(items: ExpenseItem[]) {
     handleExpensesChange([...items, ...oneTime]);
@@ -140,18 +150,72 @@ export default function Page() {
     handleExpensesChange([...recurring, ...items]);
   }
 
-  const sidebarContent = (
+  const settings = monthData?.settings ?? draftMonths[0]?.settings;
+
+  const sidebarContent = settings ? (
     <Sidebar
       draftMonths={draftMonths}
       activeMonth={activeMonthKey}
-      settings={monthData.settings}
+      settings={settings}
       onSelectMonth={handleSelectMonth}
       onCreateMonth={handleCreateMonth}
       onDeleteMonth={handleDeleteMonth}
       onRenameMonth={handleRenameMonth}
       onSettingsChange={handleSettingsChange}
+      activeView={activeView}
+      onViewChange={setActiveView}
+      dashboardYear={dashboardYear}
+      availableYears={availableYears}
+      onDashboardYearChange={setDashboardYear}
     />
-  );
+  ) : null;
+
+  function renderMainContent() {
+    if (activeView === "dashboard" && yearResult) {
+      return (
+        <div className="max-w-5xl mx-auto p-6 space-y-6">
+          <h1 className="text-2xl font-bold">Year Overview {dashboardYear}</h1>
+          <YearDashboard yearResult={yearResult} />
+        </div>
+      );
+    }
+
+    if (!monthData || !results) {
+      return <div className="flex items-center justify-center h-full">Loading...</div>;
+    }
+
+    return (
+      <div className="max-w-3xl mx-auto p-6 space-y-6">
+        <MonthHeader month={monthData.month} />
+
+        <RevenueSection
+          revenues={monthData.revenues}
+          onChange={handleRevenuesChange}
+        />
+
+        <ExpenseSection
+          title="Recurring Expenses"
+          isRecurring
+          expenses={recurring}
+          onChange={handleRecurringChange}
+        />
+
+        <ExpenseSection
+          title="One-Time Expenses"
+          isRecurring={false}
+          expenses={oneTime}
+          onChange={handleOneTimeChange}
+        />
+
+        <ResultsSummary results={results} />
+
+        <Button onClick={handleSave} className="w-full" variant="outline">
+          <Save className="h-4 w-4 mr-2" />
+          Save
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -178,35 +242,7 @@ export default function Page() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto p-6 space-y-6">
-          <MonthHeader month={monthData.month} />
-
-          <RevenueSection
-            revenues={monthData.revenues}
-            onChange={handleRevenuesChange}
-          />
-
-          <ExpenseSection
-            title="Recurring Expenses"
-            isRecurring
-            expenses={recurring}
-            onChange={handleRecurringChange}
-          />
-
-          <ExpenseSection
-            title="One-Time Expenses"
-            isRecurring={false}
-            expenses={oneTime}
-            onChange={handleOneTimeChange}
-          />
-
-          <ResultsSummary results={results} />
-
-          <Button onClick={handleSave} className="w-full" variant="outline">
-            <Save className="h-4 w-4 mr-2" />
-            Save
-          </Button>
-        </div>
+        {renderMainContent()}
       </main>
     </div>
   );

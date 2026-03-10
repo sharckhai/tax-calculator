@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SettingsDialog } from "./settings-dialog";
 import { formatMonthLabel } from "@/lib/utils";
-import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, BarChart3 } from "lucide-react";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -87,6 +87,11 @@ interface SidebarProps {
   onDeleteMonth: (month: string) => void;
   onRenameMonth: (oldMonth: string, newMonth: string) => void;
   onSettingsChange: (settings: Settings) => void;
+  activeView: "month" | "dashboard";
+  onViewChange: (view: "month" | "dashboard") => void;
+  dashboardYear: string;
+  availableYears: string[];
+  onDashboardYearChange: (year: string) => void;
 }
 
 export function Sidebar({
@@ -98,6 +103,11 @@ export function Sidebar({
   onDeleteMonth,
   onRenameMonth,
   onSettingsChange,
+  activeView,
+  onViewChange,
+  dashboardYear,
+  availableYears,
+  onDashboardYearChange,
 }: SidebarProps) {
   const now = new Date();
   const [newMonthOpen, setNewMonthOpen] = useState(false);
@@ -157,6 +167,30 @@ export function Sidebar({
         </Popover>
       </div>
       <Separator />
+      <div className="px-4 pt-3 space-y-2">
+        <Button
+          variant={activeView === "dashboard" ? "secondary" : "ghost"}
+          className="w-full justify-start"
+          onClick={() => onViewChange(activeView === "dashboard" ? "month" : "dashboard")}
+        >
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Year Overview
+        </Button>
+        {activeView === "dashboard" && availableYears.length > 0 && (
+          <Select value={dashboardYear} onValueChange={onDashboardYearChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map((y) => (
+                <SelectItem key={y} value={y}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
       <ScrollArea className="flex-1 px-4 pt-3">
         <div className="space-y-1 pb-4">
           {draftMonths.map((m) => (
