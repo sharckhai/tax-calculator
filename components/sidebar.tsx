@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { MonthData, Settings } from "@/lib/types";
+import type { MonthData } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SettingsDialog } from "./settings-dialog";
 import { formatMonthLabel } from "@/lib/utils";
-import { Plus, MoreHorizontal, Pencil, Trash2, BarChart3 } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, BarChart3, Settings } from "lucide-react";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -81,14 +80,12 @@ function MonthYearPicker({
 interface SidebarProps {
   draftMonths: MonthData[];
   activeMonth: string;
-  settings: Settings;
   onSelectMonth: (month: string) => void;
   onCreateMonth: (month: string) => void;
   onDeleteMonth: (month: string) => void;
   onRenameMonth: (oldMonth: string, newMonth: string) => void;
-  onSettingsChange: (settings: Settings) => void;
-  activeView: "month" | "dashboard";
-  onViewChange: (view: "month" | "dashboard") => void;
+  activeView: "month" | "dashboard" | "settings";
+  onViewChange: (view: "month" | "dashboard" | "settings") => void;
   dashboardYear: string;
   availableYears: string[];
   onDashboardYearChange: (year: string) => void;
@@ -97,12 +94,10 @@ interface SidebarProps {
 export function Sidebar({
   draftMonths,
   activeMonth,
-  settings,
   onSelectMonth,
   onCreateMonth,
   onDeleteMonth,
   onRenameMonth,
-  onSettingsChange,
   activeView,
   onViewChange,
   dashboardYear,
@@ -174,7 +169,7 @@ export function Sidebar({
           onClick={() => onViewChange(activeView === "dashboard" ? "month" : "dashboard")}
         >
           <BarChart3 className="h-4 w-4 mr-2" />
-          Year Overview
+          Overview
         </Button>
         {activeView === "dashboard" && availableYears.length > 0 && (
           <Select value={dashboardYear} onValueChange={onDashboardYearChange}>
@@ -190,6 +185,14 @@ export function Sidebar({
             </SelectContent>
           </Select>
         )}
+        <Button
+          variant={activeView === "settings" ? "secondary" : "ghost"}
+          className="w-full justify-start"
+          onClick={() => onViewChange(activeView === "settings" ? "month" : "settings")}
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Tax Settings
+        </Button>
       </div>
       <ScrollArea className="flex-1 px-4 pt-3">
         <div className="space-y-1 pb-4">
@@ -256,12 +259,6 @@ export function Sidebar({
           ))}
         </div>
       </ScrollArea>
-      <div className="mt-auto">
-        <Separator />
-        <div className="p-4">
-          <SettingsDialog settings={settings} onChange={onSettingsChange} />
-        </div>
-      </div>
     </div>
   );
 }

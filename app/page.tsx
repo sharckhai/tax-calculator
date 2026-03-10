@@ -15,6 +15,7 @@ import {
   renameMonth,
 } from "@/lib/storage";
 import { Sidebar } from "@/components/sidebar";
+import { TaxSettings } from "@/components/tax-settings";
 import { MonthHeader } from "@/components/month-header";
 import { RevenueSection } from "@/components/revenue-section";
 import { ExpenseSection } from "@/components/expense-section";
@@ -27,7 +28,7 @@ export default function Page() {
   const [draftMonths, setDraftMonths] = useState<MonthData[]>([]);
   const [activeMonthKey, setActiveMonthKey] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState<"month" | "dashboard">("month");
+  const [activeView, setActiveView] = useState<"month" | "dashboard" | "settings">("month");
   const [dashboardYear, setDashboardYear] = useState(String(new Date().getFullYear()));
 
   // Load from localStorage on mount
@@ -156,12 +157,10 @@ export default function Page() {
     <Sidebar
       draftMonths={draftMonths}
       activeMonth={activeMonthKey}
-      settings={settings}
       onSelectMonth={handleSelectMonth}
       onCreateMonth={handleCreateMonth}
       onDeleteMonth={handleDeleteMonth}
       onRenameMonth={handleRenameMonth}
-      onSettingsChange={handleSettingsChange}
       activeView={activeView}
       onViewChange={setActiveView}
       dashboardYear={dashboardYear}
@@ -171,6 +170,10 @@ export default function Page() {
   ) : null;
 
   function renderMainContent() {
+    if (activeView === "settings" && settings) {
+      return <TaxSettings settings={settings} onChange={handleSettingsChange} />;
+    }
+
     if (activeView === "dashboard" && yearResult) {
       return (
         <div className="max-w-5xl mx-auto p-6 space-y-6">

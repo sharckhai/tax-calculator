@@ -1,31 +1,31 @@
 "use client";
 
 import type { Settings, IncomeTaxMethod } from "@/lib/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Settings as SettingsIcon } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-interface SettingsDialogProps {
+interface TaxSettingsProps {
   settings: Settings;
   onChange: (settings: Settings) => void;
 }
 
-export function SettingsDialog({ settings, onChange }: SettingsDialogProps) {
+export function TaxSettings({ settings, onChange }: TaxSettingsProps) {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start gap-2">
-          <SettingsIcon className="h-4 w-4" />
-          Settings
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-2">
+    <div className="max-w-3xl mx-auto p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Tax Settings</h1>
+
+      <Card className="rounded-none sm:rounded-lg -mx-6 sm:mx-0">
+        <CardHeader>
+          <CardTitle>VAT</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium mb-1 block">VAT Rate (%)</label>
             <Input
@@ -50,7 +50,14 @@ export function SettingsDialog({ settings, onChange }: SettingsDialogProps) {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
 
+      <Card className="rounded-none sm:rounded-lg -mx-6 sm:mx-0">
+        <CardHeader>
+          <CardTitle>Income Tax</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium mb-1 block">Income Tax Method</label>
             <Select
@@ -77,8 +84,8 @@ export function SettingsDialog({ settings, onChange }: SettingsDialogProps) {
               />
             </div>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
