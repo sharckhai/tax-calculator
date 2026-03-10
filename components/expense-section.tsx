@@ -1,11 +1,11 @@
 "use client";
 
 import type { ExpenseItem } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExpenseRow } from "./expense-row";
 import { createExpenseItem } from "@/lib/defaults";
-import { Plus } from "lucide-react";
+import { Plus, Receipt } from "lucide-react";
 
 interface ExpenseSectionProps {
   title: string;
@@ -30,28 +30,36 @@ export function ExpenseSection({ title, isRecurring, expenses, onChange }: Expen
   }
 
   return (
-    <Card>
+    <Card className="rounded-none border-x-0 sm:rounded-xl sm:border-x">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">{title}</CardTitle>
+        <CardDescription>{expenses.length} item{expenses.length !== 1 ? "s" : ""}</CardDescription>
+        <CardAction>
+          <Button variant="outline" size="sm" onClick={handleAdd}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent>
-        {expenses.length === 0 && (
-          <p className="text-sm text-muted-foreground mb-2">No expenses yet.</p>
+        {expenses.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+            <Receipt className="h-8 w-8 mb-2" />
+            <p className="text-sm font-medium">No expenses yet</p>
+            <p className="text-xs">Add your first expense to get started</p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {expenses.map((item, i) => (
+              <ExpenseRow
+                key={item.id}
+                item={item}
+                onChange={(updated) => handleChange(i, updated)}
+                onRemove={() => handleRemove(i)}
+              />
+            ))}
+          </div>
         )}
-        <div className="space-y-1">
-          {expenses.map((item, i) => (
-            <ExpenseRow
-              key={item.id}
-              item={item}
-              onChange={(updated) => handleChange(i, updated)}
-              onRemove={() => handleRemove(i)}
-            />
-          ))}
-        </div>
-        <Button variant="outline" size="sm" onClick={handleAdd} className="mt-3">
-          <Plus className="h-4 w-4 mr-1" />
-          Add Expense
-        </Button>
       </CardContent>
     </Card>
   );

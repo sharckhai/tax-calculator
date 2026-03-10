@@ -48,6 +48,7 @@ export function createEmptyMonth(month?: string): MonthData {
     settings: { ...DEFAULT_SETTINGS, bracketRates: [...DEFAULT_BRACKET_RATES] },
     revenues: [],
     expensesBusiness: [],
+    expensesPrivate: [],
     lastModified: new Date().toISOString(),
   };
 }

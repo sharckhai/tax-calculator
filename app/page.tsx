@@ -16,11 +16,13 @@ import {
 } from "@/lib/storage";
 import { Sidebar } from "@/components/sidebar";
 import { TaxSettings } from "@/components/tax-settings";
+import { RecurringExpenses } from "@/components/recurring-expenses";
 import { MonthHeader } from "@/components/month-header";
 import { RevenueSection } from "@/components/revenue-section";
 import { ExpenseSection } from "@/components/expense-section";
 import { ResultsSummary } from "@/components/results-summary";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Save } from "lucide-react";
 
@@ -28,7 +30,7 @@ export default function Page() {
   const [draftMonths, setDraftMonths] = useState<MonthData[]>([]);
   const [activeMonthKey, setActiveMonthKey] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState<"month" | "dashboard" | "settings">("month");
+  const [activeView, setActiveView] = useState<"month" | "dashboard" | "settings" | "recurring">("month");
   const [dashboardYear, setDashboardYear] = useState(String(new Date().getFullYear()));
 
   // Load from localStorage on mount
@@ -94,6 +96,9 @@ export default function Page() {
     if (monthData) {
       newMonth.settings = { ...monthData.settings };
       newMonth.expensesBusiness = monthData.expensesBusiness
+        .filter((e) => e.isRecurring)
+        .map((e) => ({ ...e, id: crypto.randomUUID() }));
+      newMonth.expensesPrivate = monthData.expensesPrivate
         .filter((e) => e.isRecurring)
         .map((e) => ({ ...e, id: crypto.randomUUID() }));
     }
@@ -163,9 +168,6 @@ export default function Page() {
       onRenameMonth={handleRenameMonth}
       activeView={activeView}
       onViewChange={setActiveView}
-      dashboardYear={dashboardYear}
-      availableYears={availableYears}
-      onDashboardYearChange={setDashboardYear}
     />
   ) : null;
 
@@ -174,10 +176,30 @@ export default function Page() {
       return <TaxSettings settings={settings} onChange={handleSettingsChange} />;
     }
 
+    if (activeView === "recurring" && monthData) {
+      return <RecurringExpenses monthData={monthData} onChange={updateMonthData} />;
+    }
+
     if (activeView === "dashboard" && yearResult) {
       return (
         <div className="max-w-5xl mx-auto p-6 space-y-6">
-          <h1 className="text-2xl font-bold">Year Overview {dashboardYear}</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Overview</h1>
+            {availableYears.length > 0 && (
+              <Select value={dashboardYear} onValueChange={setDashboardYear}>
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map((y) => (
+                    <SelectItem key={y} value={y}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
           <YearDashboard yearResult={yearResult} />
         </div>
       );

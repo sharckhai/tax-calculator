@@ -12,7 +12,7 @@ interface ResultsSummaryProps {
 export function ResultsSummary({ results }: ResultsSummaryProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <Card>
+      <Card className="rounded-none border-x-0 sm:rounded-xl sm:border-x">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">You Receive</CardTitle>
         </CardHeader>
@@ -22,7 +22,7 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-none border-x-0 sm:rounded-xl sm:border-x">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Business Expenses</CardTitle>
         </CardHeader>
@@ -37,7 +37,7 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-warning/30">
+      <Card className="rounded-none border-x-0 border-warning/30 sm:rounded-xl sm:border-x">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-warning-foreground">Set Aside</CardTitle>
         </CardHeader>
@@ -52,6 +52,7 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
       </Card>
 
       <Card className={cn(
+        "rounded-none border-x-0 sm:rounded-xl sm:border-x",
         results.cashLeftEst >= 0 ? "border-success/30" : "border-danger/30"
       )}>
         <CardHeader className="pb-2">

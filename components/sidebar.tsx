@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatMonthLabel } from "@/lib/utils";
-import { Plus, MoreHorizontal, Pencil, Trash2, BarChart3, Settings } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, BarChart3, Settings, Repeat } from "lucide-react";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -84,11 +84,8 @@ interface SidebarProps {
   onCreateMonth: (month: string) => void;
   onDeleteMonth: (month: string) => void;
   onRenameMonth: (oldMonth: string, newMonth: string) => void;
-  activeView: "month" | "dashboard" | "settings";
-  onViewChange: (view: "month" | "dashboard" | "settings") => void;
-  dashboardYear: string;
-  availableYears: string[];
-  onDashboardYearChange: (year: string) => void;
+  activeView: "month" | "dashboard" | "settings" | "recurring";
+  onViewChange: (view: "month" | "dashboard" | "settings" | "recurring") => void;
 }
 
 export function Sidebar({
@@ -100,9 +97,6 @@ export function Sidebar({
   onRenameMonth,
   activeView,
   onViewChange,
-  dashboardYear,
-  availableYears,
-  onDashboardYearChange,
 }: SidebarProps) {
   const now = new Date();
   const [newMonthOpen, setNewMonthOpen] = useState(false);
@@ -171,20 +165,6 @@ export function Sidebar({
           <BarChart3 className="h-4 w-4 mr-2" />
           Overview
         </Button>
-        {activeView === "dashboard" && availableYears.length > 0 && (
-          <Select value={dashboardYear} onValueChange={onDashboardYearChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Year" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableYears.map((y) => (
-                <SelectItem key={y} value={y}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
         <Button
           variant={activeView === "settings" ? "secondary" : "ghost"}
           className="w-full justify-start"
@@ -193,8 +173,17 @@ export function Sidebar({
           <Settings className="h-4 w-4 mr-2" />
           Tax Settings
         </Button>
+        <Button
+          variant={activeView === "recurring" ? "secondary" : "ghost"}
+          className="w-full justify-start"
+          onClick={() => onViewChange(activeView === "recurring" ? "month" : "recurring")}
+        >
+          <Repeat className="h-4 w-4 mr-2" />
+          Recurring Expenses
+        </Button>
       </div>
       <ScrollArea className="flex-1 px-4 pt-3">
+        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-3 mb-2">Monate</h3>
         <div className="space-y-1 pb-4">
           {draftMonths.map((m) => (
             <div key={m.month} className="group relative flex items-center">

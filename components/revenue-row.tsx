@@ -18,55 +18,65 @@ export function RevenueRow({ item, onChange, onRemove }: RevenueRowProps) {
   const computedAmount = isHourly ? item.hourlyRate * item.hours : item.amount;
 
   return (
-    <div className="flex items-center gap-2 py-2">
-      <Input
-        placeholder="Label"
-        value={item.label}
-        onChange={(e) => onChange({ ...item, label: e.target.value })}
-        className="w-32 sm:w-40"
-      />
-      <Input
-        type="number"
-        placeholder="€/h"
-        value={item.hourlyRate || ""}
-        onChange={(e) => onChange({ ...item, hourlyRate: Number(e.target.value) })}
-        className="w-20"
-      />
-      <span className="text-muted-foreground">×</span>
-      <Input
-        type="number"
-        placeholder="Hours"
-        value={item.hours || ""}
-        onChange={(e) => onChange({ ...item, hours: Number(e.target.value) })}
-        className="w-20"
-      />
-      <span className="text-muted-foreground">=</span>
-      {isHourly ? (
-        <span className="w-28 text-right text-sm font-medium tabular-nums">
-          {formatCurrency(computedAmount)}
-        </span>
-      ) : (
+    <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center">
+      {/* Row 1 on mobile: Label + Delete */}
+      <div className="flex items-center gap-2 sm:contents">
+        <Input
+          placeholder="Label"
+          value={item.label}
+          onChange={(e) => onChange({ ...item, label: e.target.value })}
+          className="flex-1 sm:w-40 sm:flex-initial"
+        />
+        <Button variant="ghost" size="icon" onClick={onRemove} className="shrink-0 sm:hidden">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      {/* Row 2 on mobile: rate × hours = amount + type */}
+      <div className="flex items-center gap-2 sm:contents">
         <Input
           type="number"
-          placeholder="Amount"
-          value={item.amount || ""}
-          onChange={(e) => onChange({ ...item, amount: Number(e.target.value) })}
-          className="w-28"
+          placeholder="€/h"
+          value={item.hourlyRate || ""}
+          onChange={(e) => onChange({ ...item, hourlyRate: Number(e.target.value) })}
+          className="w-20"
         />
-      )}
-      <Select
-        value={item.amountType}
-        onValueChange={(v: AmountType) => onChange({ ...item, amountType: v })}
-      >
-        <SelectTrigger className="w-24">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="net">Net</SelectItem>
-          <SelectItem value="gross">Gross</SelectItem>
-        </SelectContent>
-      </Select>
-      <Button variant="ghost" size="icon" onClick={onRemove} className="shrink-0">
+        <span className="text-muted-foreground">×</span>
+        <Input
+          type="number"
+          placeholder="Hours"
+          value={item.hours || ""}
+          onChange={(e) => onChange({ ...item, hours: Number(e.target.value) })}
+          className="w-20"
+        />
+        <span className="text-muted-foreground">=</span>
+        {isHourly ? (
+          <span className="w-28 text-right text-sm font-medium tabular-nums">
+            {formatCurrency(computedAmount)}
+          </span>
+        ) : (
+          <Input
+            type="number"
+            placeholder="Amount"
+            value={item.amount || ""}
+            onChange={(e) => onChange({ ...item, amount: Number(e.target.value) })}
+            className="w-28"
+          />
+        )}
+        <Select
+          value={item.amountType}
+          onValueChange={(v: AmountType) => onChange({ ...item, amountType: v })}
+        >
+          <SelectTrigger className="w-24">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="net">Net</SelectItem>
+            <SelectItem value="gross">Gross</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {/* Desktop delete button */}
+      <Button variant="ghost" size="icon" onClick={onRemove} className="hidden shrink-0 sm:inline-flex">
         <X className="h-4 w-4" />
       </Button>
     </div>

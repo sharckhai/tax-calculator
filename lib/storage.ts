@@ -10,7 +10,9 @@ const LEGACY_ARCHIVE_PREFIX = "income-calc:archive:";
 export function loadMonth(month: string): MonthData | null {
   const raw = localStorage.getItem(`${MONTH_PREFIX}${month}`);
   if (!raw) return null;
-  return JSON.parse(raw);
+  const data = JSON.parse(raw);
+  data.expensesPrivate ??= [];
+  return data;
 }
 
 export function saveMonth(data: MonthData): void {
@@ -29,7 +31,9 @@ export function loadAllMonths(): MonthData[] {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key?.startsWith(MONTH_PREFIX)) {
-      months.push(JSON.parse(localStorage.getItem(key)!));
+      const data = JSON.parse(localStorage.getItem(key)!);
+      data.expensesPrivate ??= [];
+      months.push(data);
     }
   }
   return months.sort((a, b) => b.month.localeCompare(a.month));
@@ -53,6 +57,7 @@ function migrateArchives() {
   for (const key of keysToMigrate) {
     const raw = JSON.parse(localStorage.getItem(key)!);
     const { results, archivedAt, ...monthData } = raw;
+    monthData.expensesPrivate ??= [];
     saveMonth(monthData as MonthData);
     localStorage.removeItem(key);
   }
@@ -66,6 +71,7 @@ export function loadCurrentMonth(): MonthData | null {
   const legacy = localStorage.getItem(LEGACY_CURRENT_KEY);
   if (legacy) {
     const data: MonthData = JSON.parse(legacy);
+    data.expensesPrivate ??= [];
     saveMonth(data);
     setActiveMonth(data.month);
     localStorage.removeItem(LEGACY_CURRENT_KEY);

@@ -33,6 +33,7 @@ export interface MonthData {
   settings: Settings;
   revenues: RevenueItem[];
   expensesBusiness: ExpenseItem[];
+  expensesPrivate: ExpenseItem[];
   lastModified: string;
 }
 
