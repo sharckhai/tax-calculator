@@ -74,7 +74,7 @@ export default function Page() {
   );
 
   const yearMonthsData = useMemo(
-    () => (dashboardYear === "all" ? draftMonths : draftMonths.filter((m) => m.month.startsWith(dashboardYear + "-"))).filter((m) => m.revenues.length > 0),
+    () => (dashboardYear === "all" ? draftMonths : draftMonths.filter((m) => m.month.startsWith(dashboardYear + "-"))).filter((m) => m.revenues.length > 0).sort((a, b) => a.month.localeCompare(b.month)),
     [draftMonths, dashboardYear]
   );
 

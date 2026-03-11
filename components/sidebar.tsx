@@ -187,8 +187,18 @@ export function Sidebar({
           </Popover>
         </div>
         <div className="space-y-1 pb-4">
-          {draftMonths.map((m) => (
-            <div key={m.month} className="group relative flex items-center">
+          {[...draftMonths].sort((a, b) => b.month.localeCompare(a.month)).map((m, i, sorted) => {
+            const year = m.month.split("-")[0];
+            const prevYear = i > 0 ? sorted[i - 1].month.split("-")[0] : null;
+            const showYear = year !== prevYear;
+            return (
+            <div key={m.month}>
+              {showYear && (
+                <p className={`text-sm font-semibold text-muted-foreground tracking-wide ${i > 0 ? "mt-4" : ""} mb-1`}>
+                  {year}
+                </p>
+              )}
+            <div className="group relative flex items-center">
               {renameTarget === m.month ? (
                 <Popover open onOpenChange={(open) => { if (!open) setRenameTarget(null); }}>
                   <PopoverTrigger asChild>
@@ -247,7 +257,9 @@ export function Sidebar({
                 </>
               )}
             </div>
-          ))}
+            </div>
+            );
+          })}
         </div>
       </ScrollArea>
     </div>

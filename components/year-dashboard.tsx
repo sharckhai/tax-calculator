@@ -36,7 +36,6 @@ interface YearDashboardProps {
 const lineChartConfig = {
   revenue: { label: "Revenue", color: "var(--success-foreground)" },
   expenses: { label: "Expenses", color: "var(--danger-foreground)" },
-  setAside: { label: "Set Aside", color: "var(--warning-foreground)" },
   cashLeft: { label: "Yours to Keep", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
@@ -175,8 +174,8 @@ function CollapsibleSection({ title, defaultOpen = false, children }: { title: s
 
 export function YearDashboard({ yearResult, monthsData, showYear = false }: YearDashboardProps) {
   const hoursMetrics = useMemo(
-    () => calcHoursMetrics(monthsData, yearResult.revenueGrossTotal),
-    [monthsData, yearResult.revenueGrossTotal],
+    () => calcHoursMetrics(monthsData, yearResult.revenueNetTotal),
+    [monthsData, yearResult.revenueNetTotal],
   );
 
   const businessInsights = useMemo(
@@ -200,12 +199,17 @@ export function YearDashboard({ yearResult, monthsData, showYear = false }: Year
   const mc = yearResult.monthCount;
   const totalAllCosts = yearResult.expensesBusinessGrossTotal + yearResult.expensesPrivateGrossTotal;
 
+  const hoursMap = new Map(
+    monthsData.map((md) => [md.month, md.revenues.reduce((sum, r) => sum + r.hours, 0)]),
+  );
+
   const lineChartData = yearResult.months.map(({ month, result }) => ({
     month: formatShortMonthLabel(month, showYear),
     revenue: result.revenueGrossTotal,
+    revenueNet: result.revenueNetTotal,
     expenses: result.expensesBusinessGrossTotal,
-    setAside: result.savingsTotal,
     cashLeft: result.cashLeftEst,
+    hours: hoursMap.get(month) ?? 0,
   }));
 
   return (
@@ -215,19 +219,16 @@ export function YearDashboard({ yearResult, monthsData, showYear = false }: Year
         <SummaryCard
           title="Total Revenue"
           value={formatCurrency(yearResult.revenueGrossTotal)}
-          subtitle={`Net: ${formatCurrency(yearResult.revenueNetTotal)}`}
           valueClassName="text-success-foreground"
         />
         <SummaryCard
           title="Total Tax"
           value={formatCurrency(yearResult.incomeTaxTotal + yearResult.vatPayableTotal)}
-          subtitle={`Income: ${formatCurrency(yearResult.incomeTaxTotal)} · VAT: ${formatCurrency(yearResult.vatPayableTotal)}`}
-          valueClassName="text-warning-foreground"
+          valueClassName="text-orange-700"
         />
         <SummaryCard
           title="Total Business Costs"
           value={formatCurrency(yearResult.expensesBusinessGrossTotal)}
-          subtitle={`Recurring: ${formatCurrency(yearResult.recurringExpensesGrossTotal)} · One-time: ${formatCurrency(yearResult.oneTimeExpensesGrossTotal)}`}
           valueClassName="text-danger-foreground"
         />
         <SummaryCard
@@ -268,14 +269,37 @@ export function YearDashboard({ yearResult, monthsData, showYear = false }: Year
               <XAxis dataKey="month" tickLine={false} axisLine={false} />
               <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `€${v}`} />
               <ChartTooltip
-                content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  const data = payload[0]?.payload;
+                  if (!data) return null;
+                  return (
+                    <div className="rounded-lg border bg-background p-3 shadow-sm">
+                      <p className="text-sm font-medium mb-1.5">{label}</p>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-success-foreground" />
+                        <span className="text-muted-foreground">Revenue</span>
+                        <span className="ml-auto font-mono font-medium tabular-nums">{formatCurrency(data.revenue)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-orange-500" />
+                        <span className="text-muted-foreground">Hours</span>
+                        <span className="ml-auto font-mono font-medium tabular-nums">{data.hours}h</span>
+                      </div>
+                      {data.hours > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-success-foreground" />
+                          <span className="text-muted-foreground">Avg Rate</span>
+                          <span className="ml-auto font-mono font-medium tabular-nums">{formatCurrency(data.revenueNet / data.hours)}/h</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }}
               />
               <ChartLegend content={<ChartLegendContent />} />
-              <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={false}>
-                <LabelList dataKey="revenue" position="top" fontSize={11} formatter={(v: number) => formatCurrency(v)} />
-              </Line>
+              <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="setAside" stroke="var(--color-setAside)" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="cashLeft" stroke="var(--color-cashLeft)" strokeWidth={2} dot={false} />
             </LineChart>
           </ChartContainer>
@@ -350,24 +374,24 @@ export function YearDashboard({ yearResult, monthsData, showYear = false }: Year
                 {yearResult.months.map(({ month, result }) => (
                   <TableRow key={month}>
                     <TableCell className="font-medium">{formatShortMonthLabel(month, showYear)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCurrency(result.revenueGrossTotal)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCurrency(result.expensesBusinessGrossTotal)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCurrency(result.expensesPrivateGrossTotal)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCurrency(result.profitMonth)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCurrency(result.vatPayable)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCurrency(result.incomeTaxMonthEst)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-success-foreground">{formatCurrency(result.revenueGrossTotal)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-danger-foreground">{formatCurrency(result.expensesBusinessGrossTotal)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-danger-foreground">{formatCurrency(result.expensesPrivateGrossTotal)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-success-foreground">{formatCurrency(result.profitMonth)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-orange-700">{formatCurrency(result.vatPayable)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-orange-700">{formatCurrency(result.incomeTaxMonthEst)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
               <TableFooter>
                 <TableRow>
                   <TableCell className="font-bold">Total</TableCell>
-                  <TableCell className="text-right font-bold tabular-nums">{formatCurrency(yearResult.revenueGrossTotal)}</TableCell>
-                  <TableCell className="text-right font-bold tabular-nums">{formatCurrency(yearResult.expensesBusinessGrossTotal)}</TableCell>
-                  <TableCell className="text-right font-bold tabular-nums">{formatCurrency(yearResult.expensesPrivateGrossTotal)}</TableCell>
-                  <TableCell className="text-right font-bold tabular-nums">{formatCurrency(yearResult.profitTotal)}</TableCell>
-                  <TableCell className="text-right font-bold tabular-nums">{formatCurrency(yearResult.vatPayableTotal)}</TableCell>
-                  <TableCell className="text-right font-bold tabular-nums">{formatCurrency(yearResult.incomeTaxTotal)}</TableCell>
+                  <TableCell className="text-right font-bold tabular-nums text-success-foreground">{formatCurrency(yearResult.revenueGrossTotal)}</TableCell>
+                  <TableCell className="text-right font-bold tabular-nums text-danger-foreground">{formatCurrency(yearResult.expensesBusinessGrossTotal)}</TableCell>
+                  <TableCell className="text-right font-bold tabular-nums text-danger-foreground">{formatCurrency(yearResult.expensesPrivateGrossTotal)}</TableCell>
+                  <TableCell className="text-right font-bold tabular-nums text-success-foreground">{formatCurrency(yearResult.profitTotal)}</TableCell>
+                  <TableCell className="text-right font-bold tabular-nums text-orange-700">{formatCurrency(yearResult.vatPayableTotal)}</TableCell>
+                  <TableCell className="text-right font-bold tabular-nums text-orange-700">{formatCurrency(yearResult.incomeTaxTotal)}</TableCell>
                 </TableRow>
               </TableFooter>
             </Table>

@@ -23,7 +23,7 @@ export interface ExpenseInsights {
 
 export function calcHoursMetrics(
   monthsData: MonthData[],
-  revenueGrossTotal: number,
+  revenueNetTotal: number,
 ): HoursMetrics | null {
   let totalHours = 0;
   const monthlyHours: { month: string; hours: number }[] = [];
@@ -41,7 +41,7 @@ export function calcHoursMetrics(
 
   return {
     totalHours,
-    effectiveHourlyRate: revenueGrossTotal / totalHours,
+    effectiveHourlyRate: revenueNetTotal / totalHours,
     monthlyHours,
   };
 }
