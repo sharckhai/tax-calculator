@@ -8,10 +8,11 @@ import { Save } from "lucide-react";
 interface RecurringExpensesProps {
   monthData: MonthData;
   onChange: (partial: Partial<MonthData>) => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
+  saving: boolean;
 }
 
-export function RecurringExpenses({ monthData, onChange, onSave }: RecurringExpensesProps) {
+export function RecurringExpenses({ monthData, onChange, onSave, saving }: RecurringExpensesProps) {
   const businessRecurring = monthData.expensesBusiness.filter((e) => e.isRecurring);
   const businessNonRecurring = monthData.expensesBusiness.filter((e) => !e.isRecurring);
 
@@ -44,9 +45,9 @@ export function RecurringExpenses({ monthData, onChange, onSave }: RecurringExpe
         onChange={handlePrivateChange}
       />
 
-      <Button onClick={onSave} className="w-full" variant="outline">
+      <Button onClick={onSave} className="w-full" variant="outline" disabled={saving}>
         <Save className="h-4 w-4 mr-2" />
-        Save
+        {saving ? "Saving..." : "Save"}
       </Button>
     </div>
   );

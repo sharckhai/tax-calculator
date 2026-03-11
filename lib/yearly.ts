@@ -7,7 +7,8 @@ export function getAvailableYears(allMonths: MonthData[]): string[] {
 }
 
 export function calcYear(allMonths: MonthData[], year: string): YearlyResult {
-  const filtered = allMonths.filter((m) => m.month.startsWith(year + "-"));
+  const byYear = year === "all" ? allMonths : allMonths.filter((m) => m.month.startsWith(year + "-"));
+  const filtered = byYear.filter((m) => m.revenues.length > 0);
   const months = filtered
     .sort((a, b) => a.month.localeCompare(b.month))
     .map((m) => ({ month: m.month, result: calcMonth(m) }));

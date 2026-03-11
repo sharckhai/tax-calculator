@@ -8,6 +8,7 @@ import { DEFAULT_BRACKET_RATES } from "./defaults";
 
 interface DataFile {
   activeMonth: string;
+  activeView?: "month" | "dashboard" | "settings" | "recurring";
   months: MonthData[];
 }
 
@@ -153,6 +154,17 @@ export async function setActiveMonth(month: string): Promise<void> {
 export async function getActiveMonth(): Promise<string> {
   const data = await readData();
   return data.activeMonth;
+}
+
+export async function getActiveView(): Promise<"month" | "dashboard" | "settings" | "recurring"> {
+  const data = await readData();
+  return data.activeView ?? "dashboard";
+}
+
+export async function setActiveView(view: "month" | "dashboard" | "settings" | "recurring"): Promise<void> {
+  const data = await readData();
+  data.activeView = view;
+  await writeData(data);
 }
 
 export async function renameMonth(oldMonth: string, newMonth: string): Promise<void> {

@@ -131,29 +131,8 @@ export function Sidebar({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 flex items-center justify-between">
+      <div className="p-4">
         <h2 className="font-semibold text-lg">Income Calculator</h2>
-        <Popover open={newMonthOpen} onOpenChange={setNewMonthOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64" align="start">
-            <div className="space-y-3">
-              <p className="text-sm font-medium">New month</p>
-              <MonthYearPicker
-                month={newMonth}
-                year={newYear}
-                onMonthChange={setNewMonth}
-                onYearChange={setNewYear}
-              />
-              <Button size="sm" className="w-full" onClick={handleCreate}>
-                Create
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
       </div>
       <Separator />
       <div className="px-4 pt-3 space-y-2">
@@ -183,7 +162,30 @@ export function Sidebar({
         </Button>
       </div>
       <ScrollArea className="flex-1 px-4 pt-3">
-        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-3 mb-2">Monate</h3>
+        <div className="flex items-center justify-between mt-3 mb-2">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Monate</h3>
+          <Popover open={newMonthOpen} onOpenChange={setNewMonthOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6">
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64" align="start">
+              <div className="space-y-3">
+                <p className="text-sm font-medium">New month</p>
+                <MonthYearPicker
+                  month={newMonth}
+                  year={newYear}
+                  onMonthChange={setNewMonth}
+                  onYearChange={setNewYear}
+                />
+                <Button size="sm" className="w-full" onClick={handleCreate}>
+                  Create
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
         <div className="space-y-1 pb-4">
           {draftMonths.map((m) => (
             <div key={m.month} className="group relative flex items-center">
@@ -212,7 +214,7 @@ export function Sidebar({
               ) : (
                 <>
                   <Button
-                    variant={activeMonth === m.month ? "secondary" : "ghost"}
+                    variant={activeView === "month" && activeMonth === m.month ? "secondary" : "ghost"}
                     className="w-full justify-start pr-8"
                     onClick={() => onSelectMonth(m.month)}
                   >

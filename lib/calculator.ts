@@ -108,7 +108,7 @@ export function calcMonth(monthData: MonthData): CalculationResult {
   const incomeTaxMonthEst = incomeTaxYearEst / 12;
 
   const cashIn = revenueGrossTotal;
-  const cashOut = recurringExpensesGrossTotal + vatPayable + incomeTaxMonthEst;
+  const cashOut = expensesBusinessGrossTotal + vatPayable + incomeTaxMonthEst;
   const cashLeftEst = cashIn - cashOut;
 
   const savingsVat = vatPayable;

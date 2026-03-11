@@ -13,6 +13,8 @@ import {
   setActiveMonth,
   deleteMonth,
   renameMonth,
+  getActiveView as loadActiveView,
+  setActiveView as persistActiveView,
 } from "@/lib/storage";
 import { Sidebar } from "@/components/sidebar";
 import { TaxSettings } from "@/components/tax-settings";
@@ -30,8 +32,14 @@ export default function Page() {
   const [draftMonths, setDraftMonths] = useState<MonthData[]>([]);
   const [activeMonthKey, setActiveMonthKey] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState<"month" | "dashboard" | "settings" | "recurring">("dashboard");
-  const [dashboardYear, setDashboardYear] = useState(String(new Date().getFullYear()));
+  const [activeView, setActiveViewState] = useState<"month" | "dashboard" | "settings" | "recurring">("dashboard");
+  const [dashboardYear, setDashboardYear] = useState("all");
+  const [saving, setSaving] = useState(false);
+
+  const setActiveView = useCallback((view: "month" | "dashboard" | "settings" | "recurring") => {
+    setActiveViewState(view);
+    persistActiveView(view);
+  }, []);
 
   // Load from JSON file on mount
   useEffect(() => {
@@ -46,6 +54,7 @@ export default function Page() {
         setActiveMonthKey(fresh.month);
       }
       setDraftMonths(await loadAllMonths());
+      setActiveViewState(await loadActiveView());
     }
     init();
   }, []);
@@ -65,7 +74,7 @@ export default function Page() {
   );
 
   const yearMonthsData = useMemo(
-    () => draftMonths.filter((m) => m.month.startsWith(dashboardYear + "-")),
+    () => (dashboardYear === "all" ? draftMonths : draftMonths.filter((m) => m.month.startsWith(dashboardYear + "-"))).filter((m) => m.revenues.length > 0),
     [draftMonths, dashboardYear]
   );
 
@@ -146,7 +155,37 @@ export default function Page() {
 
   async function handleSave() {
     if (!monthData) return;
+    setSaving(true);
     await saveMonth({ ...monthData, lastModified: new Date().toISOString() });
+    setSaving(false);
+  }
+
+  async function handleRecurringSave() {
+    if (!monthData) return;
+    setSaving(true);
+    const now = new Date().toISOString();
+    const newBusinessRecurring = monthData.expensesBusiness.filter((e) => e.isRecurring);
+    const newPrivateRecurring = monthData.expensesPrivate.filter((e) => e.isRecurring);
+
+    for (const m of draftMonths) {
+      const bizOneTime = m.expensesBusiness.filter((e) => !e.isRecurring);
+      const privOneTime = m.expensesPrivate.filter((e) => !e.isRecurring);
+      const updated: MonthData = {
+        ...m,
+        expensesBusiness: [
+          ...newBusinessRecurring.map((e) => ({ ...e, id: crypto.randomUUID() })),
+          ...bizOneTime,
+        ],
+        expensesPrivate: [
+          ...newPrivateRecurring.map((e) => ({ ...e, id: crypto.randomUUID() })),
+          ...privOneTime,
+        ],
+        lastModified: now,
+      };
+      await saveMonth(updated);
+    }
+    setDraftMonths(await loadAllMonths());
+    setSaving(false);
   }
 
   const recurring = monthData?.expensesBusiness.filter((e) => e.isRecurring) ?? [];
@@ -196,7 +235,7 @@ export default function Page() {
     }
 
     if (activeView === "recurring" && monthData) {
-      return <RecurringExpenses monthData={monthData} onChange={updateMonthData} onSave={handleSave} />;
+      return <RecurringExpenses monthData={monthData} onChange={updateMonthData} onSave={handleRecurringSave} saving={saving} />;
     }
 
     if (activeView === "dashboard" && yearResult) {
@@ -204,22 +243,21 @@ export default function Page() {
         <div className="max-w-5xl mx-auto p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Overview</h1>
-            {availableYears.length > 0 && (
-              <Select value={dashboardYear} onValueChange={setDashboardYear}>
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableYears.map((y) => (
-                    <SelectItem key={y} value={y}>
-                      {y}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <Select value={dashboardYear} onValueChange={setDashboardYear}>
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {availableYears.map((y) => (
+                  <SelectItem key={y} value={y}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <YearDashboard yearResult={yearResult} monthsData={yearMonthsData} />
+          <YearDashboard yearResult={yearResult} monthsData={yearMonthsData} showYear={dashboardYear === "all"} />
         </div>
       );
     }
@@ -267,9 +305,9 @@ export default function Page() {
           onChange={handlePrivateOneTimeChange}
         />
 
-        <Button onClick={handleSave} className="w-full" variant="outline">
+        <Button onClick={handleSave} className="w-full" variant="outline" disabled={saving}>
           <Save className="h-4 w-4 mr-2" />
-          Save
+          {saving ? "Saving..." : "Save"}
         </Button>
       </div>
     );

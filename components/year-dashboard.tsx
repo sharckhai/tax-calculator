@@ -30,6 +30,7 @@ import { ChevronRight } from "lucide-react";
 interface YearDashboardProps {
   yearResult: YearlyResult;
   monthsData: MonthData[];
+  showYear?: boolean;
 }
 
 const lineChartConfig = {
@@ -37,11 +38,6 @@ const lineChartConfig = {
   expenses: { label: "Expenses", color: "var(--danger-foreground)" },
   setAside: { label: "Set Aside", color: "var(--warning-foreground)" },
   cashLeft: { label: "Yours to Keep", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
-const barChartConfig = {
-  revenue: { label: "Revenue", color: "var(--success-foreground)" },
-  expenses: { label: "Expenses", color: "var(--danger-foreground)" },
 } satisfies ChartConfig;
 
 const expenseBarConfig = {
@@ -177,7 +173,7 @@ function CollapsibleSection({ title, defaultOpen = false, children }: { title: s
   );
 }
 
-export function YearDashboard({ yearResult, monthsData }: YearDashboardProps) {
+export function YearDashboard({ yearResult, monthsData, showYear = false }: YearDashboardProps) {
   const hoursMetrics = useMemo(
     () => calcHoursMetrics(monthsData, yearResult.revenueGrossTotal),
     [monthsData, yearResult.revenueGrossTotal],
@@ -196,7 +192,7 @@ export function YearDashboard({ yearResult, monthsData }: YearDashboardProps) {
   if (yearResult.monthCount === 0) {
     return (
       <p className="text-muted-foreground text-center py-12">
-        No data for {yearResult.year}. Create months to see the yearly overview.
+        No data{yearResult.year !== "all" ? ` for ${yearResult.year}` : ""}. Create months to see the overview.
       </p>
     );
   }
@@ -205,17 +201,11 @@ export function YearDashboard({ yearResult, monthsData }: YearDashboardProps) {
   const totalAllCosts = yearResult.expensesBusinessGrossTotal + yearResult.expensesPrivateGrossTotal;
 
   const lineChartData = yearResult.months.map(({ month, result }) => ({
-    month: formatShortMonthLabel(month),
+    month: formatShortMonthLabel(month, showYear),
     revenue: result.revenueGrossTotal,
     expenses: result.expensesBusinessGrossTotal,
     setAside: result.savingsTotal,
     cashLeft: result.cashLeftEst,
-  }));
-
-  const revenueVsExpensesData = yearResult.months.map(({ month, result }) => ({
-    month: formatShortMonthLabel(month),
-    revenue: result.revenueGrossTotal,
-    expenses: result.expensesBusinessGrossTotal,
   }));
 
   return (
@@ -244,18 +234,6 @@ export function YearDashboard({ yearResult, monthsData }: YearDashboardProps) {
           title="Total Private Costs"
           value={formatCurrency(yearResult.expensesPrivateGrossTotal)}
           valueClassName="text-danger-foreground"
-        />
-        <SummaryCard
-          title="Monthly Avg All Costs"
-          value={formatCurrency(totalAllCosts / mc)}
-        />
-        <SummaryCard
-          title="Monthly Avg Private Costs"
-          value={formatCurrency(yearResult.expensesPrivateGrossTotal / mc)}
-        />
-        <SummaryCard
-          title="Monthly Avg One-Time Expenses"
-          value={formatCurrency(yearResult.oneTimeExpensesGrossTotal / mc)}
         />
       </div>
 
@@ -296,36 +274,29 @@ export function YearDashboard({ yearResult, monthsData }: YearDashboardProps) {
               <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={false}>
                 <LabelList dataKey="revenue" position="top" fontSize={11} formatter={(v: number) => formatCurrency(v)} />
               </Line>
-              <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={2} dot={false}>
-                <LabelList dataKey="expenses" position="bottom" fontSize={11} formatter={(v: number) => formatCurrency(v)} />
-              </Line>
-              <Line type="monotone" dataKey="setAside" stroke="var(--color-setAside)" strokeWidth={2} dot={false}>
-                <LabelList dataKey="setAside" position="top" fontSize={11} formatter={(v: number) => formatCurrency(v)} />
-              </Line>
-              <Line type="monotone" dataKey="cashLeft" stroke="var(--color-cashLeft)" strokeWidth={2} dot={false}>
-                <LabelList dataKey="cashLeft" position="bottom" fontSize={11} formatter={(v: number) => formatCurrency(v)} />
-              </Line>
+              <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="setAside" stroke="var(--color-setAside)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="cashLeft" stroke="var(--color-cashLeft)" strokeWidth={2} dot={false} />
             </LineChart>
           </ChartContainer>
         </CardContent>
       </Card>
 
-      {/* Revenue vs Expenses bar chart */}
-      <CollapsibleSection title="Revenue vs Expenses" defaultOpen>
-        <ChartContainer config={barChartConfig} className="h-[300px] w-full">
-          <BarChart data={revenueVsExpensesData} accessibilityLayer>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" tickLine={false} axisLine={false} />
-            <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `€${v}`} />
-            <ChartTooltip
-              content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
-            />
-            <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ChartContainer>
-      </CollapsibleSection>
+      {/* Monthly averages */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <SummaryCard
+          title="Monthly Avg All Costs"
+          value={formatCurrency(totalAllCosts / mc)}
+        />
+        <SummaryCard
+          title="Monthly Avg Private Costs"
+          value={formatCurrency(yearResult.expensesPrivateGrossTotal / mc)}
+        />
+        <SummaryCard
+          title="Monthly Avg One-Time Expenses"
+          value={formatCurrency(yearResult.oneTimeExpensesGrossTotal / mc)}
+        />
+      </div>
 
       {/* Business Expenses */}
       {businessInsights.topExpenses.length > 0 && (
@@ -378,7 +349,7 @@ export function YearDashboard({ yearResult, monthsData }: YearDashboardProps) {
               <TableBody>
                 {yearResult.months.map(({ month, result }) => (
                   <TableRow key={month}>
-                    <TableCell className="font-medium">{formatShortMonthLabel(month)}</TableCell>
+                    <TableCell className="font-medium">{formatShortMonthLabel(month, showYear)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatCurrency(result.revenueGrossTotal)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatCurrency(result.expensesBusinessGrossTotal)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatCurrency(result.expensesPrivateGrossTotal)}</TableCell>
