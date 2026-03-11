@@ -2,13 +2,16 @@
 
 import type { MonthData, ExpenseItem } from "@/lib/types";
 import { ExpenseSection } from "@/components/expense-section";
+import { Button } from "@/components/ui/button";
+import { Save } from "lucide-react";
 
 interface RecurringExpensesProps {
   monthData: MonthData;
   onChange: (partial: Partial<MonthData>) => void;
+  onSave: () => void;
 }
 
-export function RecurringExpenses({ monthData, onChange }: RecurringExpensesProps) {
+export function RecurringExpenses({ monthData, onChange, onSave }: RecurringExpensesProps) {
   const businessRecurring = monthData.expensesBusiness.filter((e) => e.isRecurring);
   const businessNonRecurring = monthData.expensesBusiness.filter((e) => !e.isRecurring);
 
@@ -40,6 +43,11 @@ export function RecurringExpenses({ monthData, onChange }: RecurringExpensesProp
         expenses={privateRecurring}
         onChange={handlePrivateChange}
       />
+
+      <Button onClick={onSave} className="w-full" variant="outline">
+        <Save className="h-4 w-4 mr-2" />
+        Save
+      </Button>
     </div>
   );
 }

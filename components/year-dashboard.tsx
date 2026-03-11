@@ -1,7 +1,8 @@
 "use client";
 
-import { CartesianGrid, LabelList, Line, LineChart, XAxis, YAxis } from "recharts";
-import type { YearlyResult } from "@/lib/types";
+import { useMemo, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, XAxis, YAxis } from "recharts";
+import type { MonthData, YearlyResult } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartConfig,
@@ -20,18 +21,126 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatCurrency, formatShortMonthLabel } from "@/lib/utils";
+import { calcHoursMetrics, calcExpenseInsights, type ExpenseInsights } from "@/lib/dashboard-metrics";
+import { ChevronRight } from "lucide-react";
 
 interface YearDashboardProps {
   yearResult: YearlyResult;
+  monthsData: MonthData[];
 }
 
-const chartConfig = {
+const lineChartConfig = {
   revenue: { label: "Revenue", color: "var(--success-foreground)" },
   expenses: { label: "Expenses", color: "var(--danger-foreground)" },
   setAside: { label: "Set Aside", color: "var(--warning-foreground)" },
   cashLeft: { label: "Yours to Keep", color: "var(--chart-1)" },
 } satisfies ChartConfig;
+
+const barChartConfig = {
+  revenue: { label: "Revenue", color: "var(--success-foreground)" },
+  expenses: { label: "Expenses", color: "var(--danger-foreground)" },
+} satisfies ChartConfig;
+
+const expenseBarConfig = {
+  recurring: { label: "Recurring", color: "var(--warning-foreground)" },
+  oneTime: { label: "One-Time", color: "var(--chart-3)" },
+} satisfies ChartConfig;
+
+const hoursChartConfig = {
+  hours: { label: "Hours", color: "var(--chart-2)" },
+} satisfies ChartConfig;
+
+const PIE_COLORS = ["var(--warning-foreground)", "var(--chart-3)"];
+
+function ExpenseInsightsSection({ title, insights }: { title: string; insights: ExpenseInsights }) {
+  const pieData = [
+    { name: "Recurring", value: insights.recurringTotal },
+    { name: "One-Time", value: insights.oneTimeTotal },
+  ];
+
+  return (
+    <CollapsibleSection title={title} defaultOpen>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Expense</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Count</TableHead>
+                <TableHead>Type</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {insights.topExpenses.map((e) => (
+                <TableRow key={e.label}>
+                  <TableCell className="font-medium">{e.label}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatCurrency(e.totalAmount)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{e.occurrences}</TableCell>
+                  <TableCell>
+                    <Badge variant={e.isRecurring ? "default" : "secondary"}>
+                      {e.isRecurring ? "Recurring" : "One-time"}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {(insights.recurringTotal > 0 || insights.oneTimeTotal > 0) && (
+          <div className="flex flex-col items-center justify-center">
+            <ChartContainer config={expenseBarConfig} className="h-[250px] w-full max-w-[300px]">
+              <PieChart accessibilityLayer>
+                <ChartTooltip
+                  content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
+                />
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={60}
+                  outerRadius={90}
+                  strokeWidth={2}
+                >
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i]} />
+                  ))}
+                </Pie>
+                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+              </PieChart>
+            </ChartContainer>
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              <span>Recurring: {formatCurrency(insights.recurringTotal)}</span>
+              <span className="mx-2">·</span>
+              <span>One-Time: {formatCurrency(insights.oneTimeTotal)}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6">
+        <p className="text-sm font-medium text-muted-foreground mb-3">Monthly Expense Breakdown</p>
+        <ChartContainer config={expenseBarConfig} className="h-[250px] w-full">
+          <BarChart data={insights.monthlyExpenses} accessibilityLayer>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" tickLine={false} axisLine={false} />
+            <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `€${v}`} />
+            <ChartTooltip
+              content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
+            />
+            <ChartLegend content={<ChartLegendContent />} />
+            <Bar dataKey="recurring" stackId="expenses" fill="var(--color-recurring)" radius={[0, 0, 0, 0]} />
+            <Bar dataKey="oneTime" stackId="expenses" fill="var(--color-oneTime)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ChartContainer>
+      </div>
+    </CollapsibleSection>
+  );
+}
 
 function SummaryCard({ title, value, subtitle, valueClassName }: { title: string; value: string; subtitle?: string; valueClassName?: string }) {
   return (
@@ -47,7 +156,43 @@ function SummaryCard({ title, value, subtitle, valueClassName }: { title: string
   );
 }
 
-export function YearDashboard({ yearResult }: YearDashboardProps) {
+function CollapsibleSection({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer select-none">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <ChevronRight className={`h-4 w-4 transition-transform ${open ? "rotate-90" : ""}`} />
+              {title}
+            </CardTitle>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent>{children}</CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
+
+export function YearDashboard({ yearResult, monthsData }: YearDashboardProps) {
+  const hoursMetrics = useMemo(
+    () => calcHoursMetrics(monthsData, yearResult.revenueGrossTotal),
+    [monthsData, yearResult.revenueGrossTotal],
+  );
+
+  const businessInsights = useMemo(
+    () => calcExpenseInsights(monthsData, "expensesBusiness"),
+    [monthsData],
+  );
+
+  const privateInsights = useMemo(
+    () => calcExpenseInsights(monthsData, "expensesPrivate"),
+    [monthsData],
+  );
+
   if (yearResult.monthCount === 0) {
     return (
       <p className="text-muted-foreground text-center py-12">
@@ -59,12 +204,18 @@ export function YearDashboard({ yearResult }: YearDashboardProps) {
   const mc = yearResult.monthCount;
   const totalAllCosts = yearResult.expensesBusinessGrossTotal + yearResult.expensesPrivateGrossTotal;
 
-  const chartData = yearResult.months.map(({ month, result }) => ({
+  const lineChartData = yearResult.months.map(({ month, result }) => ({
     month: formatShortMonthLabel(month),
     revenue: result.revenueGrossTotal,
     expenses: result.expensesBusinessGrossTotal,
     setAside: result.savingsTotal,
     cashLeft: result.cashLeftEst,
+  }));
+
+  const revenueVsExpensesData = yearResult.months.map(({ month, result }) => ({
+    month: formatShortMonthLabel(month),
+    revenue: result.revenueGrossTotal,
+    expenses: result.expensesBusinessGrossTotal,
   }));
 
   return (
@@ -79,7 +230,8 @@ export function YearDashboard({ yearResult }: YearDashboardProps) {
         />
         <SummaryCard
           title="Total Tax"
-          value={formatCurrency(yearResult.incomeTaxTotal)}
+          value={formatCurrency(yearResult.incomeTaxTotal + yearResult.vatPayableTotal)}
+          subtitle={`Income: ${formatCurrency(yearResult.incomeTaxTotal)} · VAT: ${formatCurrency(yearResult.vatPayableTotal)}`}
           valueClassName="text-warning-foreground"
         />
         <SummaryCard
@@ -107,14 +259,33 @@ export function YearDashboard({ yearResult }: YearDashboardProps) {
         />
       </div>
 
-      {/* Overview chart */}
+      {/* Hours & Rate cards */}
+      {hoursMetrics && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <SummaryCard
+            title="Total Hours Worked"
+            value={`${hoursMetrics.totalHours.toFixed(1)}h`}
+          />
+          <SummaryCard
+            title="Effective Hourly Rate"
+            value={formatCurrency(hoursMetrics.effectiveHourlyRate)}
+            valueClassName="text-success-foreground"
+          />
+          <SummaryCard
+            title="Avg Monthly Revenue"
+            value={formatCurrency(yearResult.revenueGrossTotal / mc)}
+          />
+        </div>
+      )}
+
+      {/* Monthly overview line chart */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <LineChart data={chartData} accessibilityLayer>
+          <ChartContainer config={lineChartConfig} className="h-[300px] w-full">
+            <LineChart data={lineChartData} accessibilityLayer>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" tickLine={false} axisLine={false} />
               <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `€${v}`} />
@@ -138,6 +309,52 @@ export function YearDashboard({ yearResult }: YearDashboardProps) {
           </ChartContainer>
         </CardContent>
       </Card>
+
+      {/* Revenue vs Expenses bar chart */}
+      <CollapsibleSection title="Revenue vs Expenses" defaultOpen>
+        <ChartContainer config={barChartConfig} className="h-[300px] w-full">
+          <BarChart data={revenueVsExpensesData} accessibilityLayer>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" tickLine={false} axisLine={false} />
+            <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `€${v}`} />
+            <ChartTooltip
+              content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
+            />
+            <ChartLegend content={<ChartLegendContent />} />
+            <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ChartContainer>
+      </CollapsibleSection>
+
+      {/* Business Expenses */}
+      {businessInsights.topExpenses.length > 0 && (
+        <ExpenseInsightsSection title="Business Expenses" insights={businessInsights} />
+      )}
+
+      {/* Private Expenses */}
+      {privateInsights.topExpenses.length > 0 && (
+        <ExpenseInsightsSection title="Private Expenses" insights={privateInsights} />
+      )}
+
+      {/* Hours trend bar chart */}
+      {hoursMetrics && (
+        <CollapsibleSection title="Hours Trend">
+          <ChartContainer config={hoursChartConfig} className="h-[250px] w-full">
+            <BarChart data={hoursMetrics.monthlyHours} accessibilityLayer>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} />
+              <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${v}h`} />
+              <ChartTooltip
+                content={<ChartTooltipContent formatter={(value) => `${value}h`} />}
+              />
+              <Bar dataKey="hours" fill="var(--color-hours)" radius={[4, 4, 0, 0]}>
+                <LabelList dataKey="hours" position="top" fontSize={11} formatter={(v: number) => `${v}h`} />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </CollapsibleSection>
+      )}
 
       {/* Monthly breakdown table */}
       <Card>

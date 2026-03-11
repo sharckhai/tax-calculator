@@ -64,6 +64,11 @@ export default function Page() {
     [activeView, draftMonths, dashboardYear]
   );
 
+  const yearMonthsData = useMemo(
+    () => draftMonths.filter((m) => m.month.startsWith(dashboardYear + "-")),
+    [draftMonths, dashboardYear]
+  );
+
   const updateMonthData = useCallback(
     (partial: Partial<MonthData>) => {
       setDraftMonths((prev) =>
@@ -147,12 +152,27 @@ export default function Page() {
   const recurring = monthData?.expensesBusiness.filter((e) => e.isRecurring) ?? [];
   const oneTime = monthData?.expensesBusiness.filter((e) => !e.isRecurring) ?? [];
 
+  const privateRecurring = monthData?.expensesPrivate.filter((e) => e.isRecurring) ?? [];
+  const privateOneTime = monthData?.expensesPrivate.filter((e) => !e.isRecurring) ?? [];
+
   function handleRecurringChange(items: ExpenseItem[]) {
     handleExpensesChange([...items, ...oneTime]);
   }
 
   function handleOneTimeChange(items: ExpenseItem[]) {
     handleExpensesChange([...recurring, ...items]);
+  }
+
+  function handlePrivateExpensesChange(expenses: ExpenseItem[]) {
+    updateMonthData({ expensesPrivate: expenses });
+  }
+
+  function handlePrivateRecurringChange(items: ExpenseItem[]) {
+    handlePrivateExpensesChange([...items, ...privateOneTime]);
+  }
+
+  function handlePrivateOneTimeChange(items: ExpenseItem[]) {
+    handlePrivateExpensesChange([...privateRecurring, ...items]);
   }
 
   const settings = monthData?.settings ?? draftMonths[0]?.settings;
@@ -176,7 +196,7 @@ export default function Page() {
     }
 
     if (activeView === "recurring" && monthData) {
-      return <RecurringExpenses monthData={monthData} onChange={updateMonthData} />;
+      return <RecurringExpenses monthData={monthData} onChange={updateMonthData} onSave={handleSave} />;
     }
 
     if (activeView === "dashboard" && yearResult) {
@@ -199,7 +219,7 @@ export default function Page() {
               </Select>
             )}
           </div>
-          <YearDashboard yearResult={yearResult} />
+          <YearDashboard yearResult={yearResult} monthsData={yearMonthsData} />
         </div>
       );
     }
@@ -231,6 +251,20 @@ export default function Page() {
           isRecurring={false}
           expenses={oneTime}
           onChange={handleOneTimeChange}
+        />
+
+        <ExpenseSection
+          title="Private Recurring Expenses"
+          isRecurring
+          expenses={privateRecurring}
+          onChange={handlePrivateRecurringChange}
+        />
+
+        <ExpenseSection
+          title="Private One-Time Expenses"
+          isRecurring={false}
+          expenses={privateOneTime}
+          onChange={handlePrivateOneTimeChange}
         />
 
         <Button onClick={handleSave} className="w-full" variant="outline">
