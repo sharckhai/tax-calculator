@@ -55,7 +55,7 @@ function getRevenueAmount(item: RevenueItem): number {
 }
 
 export function calcMonth(monthData: MonthData): CalculationResult {
-  const { settings, revenues, expensesBusiness } = monthData;
+  const { settings, revenues, expensesBusiness, expensesPrivate = [] } = monthData;
 
   let revenueNetTotal = 0;
   let revenueVatTotal = 0;
@@ -87,6 +87,13 @@ export function calcMonth(monthData: MonthData): CalculationResult {
     } else {
       oneTimeExpensesGrossTotal += gross;
     }
+  }
+
+  let expensesPrivateGrossTotal = 0;
+  for (const item of expensesPrivate) {
+    const vatRate = item.vatRate ?? settings.vatRate;
+    const { gross } = splitVat(item.amount, item.amountType, vatRate);
+    expensesPrivateGrossTotal += gross;
   }
 
   const outputVat = settings.isVatLiable ? revenueVatTotal : 0;
@@ -133,5 +140,6 @@ export function calcMonth(monthData: MonthData): CalculationResult {
     savingsVat: r(savingsVat),
     savingsIncomeTax: r(savingsIncomeTax),
     savingsTotal: r(savingsTotal),
+    expensesPrivateGrossTotal: r(expensesPrivateGrossTotal),
   };
 }

@@ -14,22 +14,22 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <Card className="rounded-none border-x-0 sm:rounded-xl sm:border-x">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">You Receive</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Revenue</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold tabular-nums">{formatCurrency(results.revenueGrossTotal)}</p>
+          <p className="text-2xl font-bold tabular-nums text-success-foreground">{formatCurrency(results.revenueGrossTotal)}</p>
           <p className="text-xs text-muted-foreground">Net: {formatCurrency(results.revenueNetTotal)}</p>
         </CardContent>
       </Card>
 
       <Card className="rounded-none border-x-0 sm:rounded-xl sm:border-x">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Business Expenses</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Expenses</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold tabular-nums">{formatCurrency(results.recurringExpensesGrossTotal)}</p>
+          <p className="text-2xl font-bold tabular-nums text-danger-foreground">{formatCurrency(results.recurringExpensesGrossTotal + results.oneTimeExpensesGrossTotal)}</p>
           <p className="text-xs text-muted-foreground">
-            Recurring (monthly)
+            Recurring: {formatCurrency(results.recurringExpensesGrossTotal)}
             {results.oneTimeExpensesGrossTotal > 0 && (
               <> · One-time: {formatCurrency(results.oneTimeExpensesGrossTotal)}</>
             )}
@@ -37,9 +37,9 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
         </CardContent>
       </Card>
 
-      <Card className="rounded-none border-x-0 border-warning/30 sm:rounded-xl sm:border-x">
+      <Card className="rounded-none border-x-0 sm:rounded-xl sm:border-x">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-warning-foreground">Set Aside</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Set Aside</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-2xl font-bold tabular-nums text-warning-foreground">
@@ -51,26 +51,14 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
         </CardContent>
       </Card>
 
-      <Card className={cn(
-        "rounded-none border-x-0 sm:rounded-xl sm:border-x",
-        results.cashLeftEst >= 0 ? "border-success/30" : "border-danger/30"
-      )}>
+      <Card className="rounded-none border-x-0 sm:rounded-xl sm:border-x">
         <CardHeader className="pb-2">
-          <CardTitle className={cn(
-            "text-sm font-medium",
-            results.cashLeftEst >= 0
-              ? "text-success-foreground"
-              : "text-danger-foreground"
-          )}>
-            Yours to Keep
-          </CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Yours to Keep</CardTitle>
         </CardHeader>
         <CardContent>
           <p className={cn(
             "text-2xl font-bold tabular-nums",
-            results.cashLeftEst >= 0
-              ? "text-success-foreground"
-              : "text-danger-foreground"
+            results.cashLeftEst >= 0 ? "text-success-foreground" : "text-danger-foreground"
           )}>
             {formatCurrency(results.cashLeftEst)}
           </p>

@@ -53,6 +53,7 @@ export interface YearlyResult {
   cashOutTotal: number;
   cashLeftTotal: number;
   savingsTotal: number;
+  expensesPrivateGrossTotal: number;
 }
 
 export interface CalculationResult {
@@ -78,5 +79,6 @@ export interface CalculationResult {
   savingsVat: number;
   savingsIncomeTax: number;
   savingsTotal: number;
+  expensesPrivateGrossTotal: number;
 }
 

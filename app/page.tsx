@@ -30,23 +30,24 @@ export default function Page() {
   const [draftMonths, setDraftMonths] = useState<MonthData[]>([]);
   const [activeMonthKey, setActiveMonthKey] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState<"month" | "dashboard" | "settings" | "recurring">("month");
+  const [activeView, setActiveView] = useState<"month" | "dashboard" | "settings" | "recurring">("dashboard");
   const [dashboardYear, setDashboardYear] = useState(String(new Date().getFullYear()));
 
-  // Load from localStorage on mount
+  // Load from JSON file on mount
   useEffect(() => {
-    // Try loading existing data (handles legacy migration too)
-    const current = loadCurrentMonth();
-    if (current) {
-      setActiveMonthKey(current.month);
-    } else {
-      // First visit ever — create a default month
-      const fresh = createEmptyMonth();
-      saveMonth(fresh);
-      setActiveMonth(fresh.month);
-      setActiveMonthKey(fresh.month);
+    async function init() {
+      const current = await loadCurrentMonth();
+      if (current) {
+        setActiveMonthKey(current.month);
+      } else {
+        const fresh = createEmptyMonth();
+        await saveMonth(fresh);
+        await setActiveMonth(fresh.month);
+        setActiveMonthKey(fresh.month);
+      }
+      setDraftMonths(await loadAllMonths());
     }
-    setDraftMonths(loadAllMonths());
+    init();
   }, []);
 
   const monthData = draftMonths.find((m) => m.month === activeMonthKey) ?? null;
@@ -84,15 +85,13 @@ export default function Page() {
     updateMonthData({ expensesBusiness: expenses });
   }
 
-  function handleCreateMonth(month: string) {
-    // Don't create if it already exists as a draft
+  async function handleCreateMonth(month: string) {
     if (draftMonths.some((m) => m.month === month)) {
       setActiveMonthKey(month);
-      setActiveMonth(month);
+      await setActiveMonth(month);
       return;
     }
     const newMonth = createEmptyMonth(month);
-    // Carry forward settings from the current month if available
     if (monthData) {
       newMonth.settings = { ...monthData.settings };
       newMonth.expensesBusiness = monthData.expensesBusiness
@@ -102,47 +101,47 @@ export default function Page() {
         .filter((e) => e.isRecurring)
         .map((e) => ({ ...e, id: crypto.randomUUID() }));
     }
-    saveMonth(newMonth);
-    setActiveMonth(month);
-    setDraftMonths(loadAllMonths());
+    await saveMonth(newMonth);
+    await setActiveMonth(month);
+    setDraftMonths(await loadAllMonths());
     setActiveMonthKey(month);
   }
 
-  function handleDeleteMonth(month: string) {
-    deleteMonth(month);
-    const remaining = loadAllMonths();
+  async function handleDeleteMonth(month: string) {
+    await deleteMonth(month);
+    const remaining = await loadAllMonths();
     if (month === activeMonthKey) {
       if (remaining.length > 0) {
         setActiveMonthKey(remaining[0].month);
-        setActiveMonth(remaining[0].month);
+        await setActiveMonth(remaining[0].month);
       } else {
         const fresh = createEmptyMonth();
-        saveMonth(fresh);
-        setActiveMonth(fresh.month);
+        await saveMonth(fresh);
+        await setActiveMonth(fresh.month);
         setActiveMonthKey(fresh.month);
       }
     }
-    setDraftMonths(loadAllMonths());
+    setDraftMonths(await loadAllMonths());
   }
 
-  function handleRenameMonth(oldMonth: string, newMonth: string) {
-    renameMonth(oldMonth, newMonth);
+  async function handleRenameMonth(oldMonth: string, newMonth: string) {
+    await renameMonth(oldMonth, newMonth);
     if (activeMonthKey === oldMonth) {
       setActiveMonthKey(newMonth);
     }
-    setDraftMonths(loadAllMonths());
+    setDraftMonths(await loadAllMonths());
   }
 
-  function handleSelectMonth(month: string) {
+  async function handleSelectMonth(month: string) {
     setActiveMonthKey(month);
-    setActiveMonth(month);
+    await setActiveMonth(month);
     setActiveView("month");
     setSidebarOpen(false);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!monthData) return;
-    saveMonth({ ...monthData, lastModified: new Date().toISOString() });
+    await saveMonth({ ...monthData, lastModified: new Date().toISOString() });
   }
 
   const recurring = monthData?.expensesBusiness.filter((e) => e.isRecurring) ?? [];
@@ -213,6 +212,8 @@ export default function Page() {
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         <MonthHeader month={monthData.month} />
 
+        <ResultsSummary results={results} />
+
         <RevenueSection
           revenues={monthData.revenues}
           onChange={handleRevenuesChange}
@@ -231,8 +232,6 @@ export default function Page() {
           expenses={oneTime}
           onChange={handleOneTimeChange}
         />
-
-        <ResultsSummary results={results} />
 
         <Button onClick={handleSave} className="w-full" variant="outline">
           <Save className="h-4 w-4 mr-2" />

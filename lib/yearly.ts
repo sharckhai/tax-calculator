@@ -31,5 +31,6 @@ export function calcYear(allMonths: MonthData[], year: string): YearlyResult {
     cashOutTotal: sum((r) => r.cashOut),
     cashLeftTotal: sum((r) => r.cashLeftEst),
     savingsTotal: sum((r) => r.savingsTotal),
+    expensesPrivateGrossTotal: sum((r) => r.expensesPrivateGrossTotal),
   };
 }
