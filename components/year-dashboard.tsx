@@ -306,51 +306,6 @@ export function YearDashboard({ yearResult, monthsData, showYear = false }: Year
         </CardContent>
       </Card>
 
-      {/* Monthly averages */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <SummaryCard
-          title="Monthly Avg All Costs"
-          value={formatCurrency(totalAllCosts / mc)}
-        />
-        <SummaryCard
-          title="Monthly Avg Private Costs"
-          value={formatCurrency(yearResult.expensesPrivateGrossTotal / mc)}
-        />
-        <SummaryCard
-          title="Monthly Avg One-Time Expenses"
-          value={formatCurrency(yearResult.oneTimeExpensesGrossTotal / mc)}
-        />
-      </div>
-
-      {/* Business Expenses */}
-      {businessInsights.topExpenses.length > 0 && (
-        <ExpenseInsightsSection title="Business Expenses" insights={businessInsights} />
-      )}
-
-      {/* Private Expenses */}
-      {privateInsights.topExpenses.length > 0 && (
-        <ExpenseInsightsSection title="Private Expenses" insights={privateInsights} />
-      )}
-
-      {/* Hours trend bar chart */}
-      {hoursMetrics && (
-        <CollapsibleSection title="Hours Trend">
-          <ChartContainer config={hoursChartConfig} className="h-[250px] w-full">
-            <BarChart data={hoursMetrics.monthlyHours} accessibilityLayer>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${v}h`} />
-              <ChartTooltip
-                content={<ChartTooltipContent formatter={(value) => `${value}h`} />}
-              />
-              <Bar dataKey="hours" fill="var(--color-hours)" radius={[4, 4, 0, 0]}>
-                <LabelList dataKey="hours" position="top" fontSize={11} formatter={(v: number) => `${v}h`} />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CollapsibleSection>
-      )}
-
       {/* Monthly breakdown table */}
       <Card>
         <CardHeader>
@@ -398,6 +353,51 @@ export function YearDashboard({ yearResult, monthsData, showYear = false }: Year
           </div>
         </CardContent>
       </Card>
+
+      {/* Monthly averages */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <SummaryCard
+          title="Monthly Avg All Costs"
+          value={formatCurrency(totalAllCosts / mc)}
+        />
+        <SummaryCard
+          title="Monthly Avg Private Costs"
+          value={formatCurrency(yearResult.expensesPrivateGrossTotal / mc)}
+        />
+        <SummaryCard
+          title="Monthly Avg One-Time Expenses"
+          value={formatCurrency(yearResult.oneTimeExpensesGrossTotal / mc)}
+        />
+      </div>
+
+      {/* Business Expenses */}
+      {businessInsights.topExpenses.length > 0 && (
+        <ExpenseInsightsSection title="Business Expenses" insights={businessInsights} />
+      )}
+
+      {/* Private Expenses */}
+      {privateInsights.topExpenses.length > 0 && (
+        <ExpenseInsightsSection title="Private Expenses" insights={privateInsights} />
+      )}
+
+      {/* Hours trend bar chart */}
+      {hoursMetrics && (
+        <CollapsibleSection title="Hours Trend">
+          <ChartContainer config={hoursChartConfig} className="h-[250px] w-full">
+            <BarChart data={hoursMetrics.monthlyHours} accessibilityLayer>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} />
+              <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${v}h`} />
+              <ChartTooltip
+                content={<ChartTooltipContent formatter={(value) => `${value}h`} />}
+              />
+              <Bar dataKey="hours" fill="var(--color-hours)" radius={[4, 4, 0, 0]}>
+                <LabelList dataKey="hours" position="top" fontSize={11} formatter={(v: number) => `${v}h`} />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </CollapsibleSection>
+      )}
     </div>
   );
 }
