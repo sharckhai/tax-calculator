@@ -39,10 +39,11 @@ const lineChartConfig = {
   cashLeft: { label: "Yours to Keep", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
-const expenseBarConfig = {
-  recurring: { label: "Recurring", color: "var(--warning-foreground)" },
-  oneTime: { label: "One-Time", color: "var(--chart-3)" },
-} satisfies ChartConfig;
+const EXPENSE_COLORS = [
+  "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)",
+  "var(--danger-foreground)", "var(--warning-foreground)", "var(--success-foreground)",
+  "oklch(0.65 0.15 45)", "oklch(0.6 0.2 200)",
+];
 
 const hoursChartConfig = {
   hours: { label: "Hours", color: "var(--chart-2)" },
@@ -55,6 +56,15 @@ function ExpenseInsightsSection({ title, insights }: { title: string; insights: 
     { name: "Recurring", value: insights.recurringTotal },
     { name: "One-Time", value: insights.oneTimeTotal },
   ];
+
+  const barConfig = Object.fromEntries(
+    insights.expenseLabels.map((label, i) => [label, { label, color: EXPENSE_COLORS[i % EXPENSE_COLORS.length] }]),
+  ) satisfies ChartConfig;
+
+  const pieConfig = {
+    recurring: { label: "Recurring", color: PIE_COLORS[0] },
+    oneTime: { label: "One-Time", color: PIE_COLORS[1] },
+  } satisfies ChartConfig;
 
   return (
     <CollapsibleSection title={title} defaultOpen>
@@ -88,7 +98,7 @@ function ExpenseInsightsSection({ title, insights }: { title: string; insights: 
 
         {(insights.recurringTotal > 0 || insights.oneTimeTotal > 0) && (
           <div className="flex flex-col items-center justify-center">
-            <ChartContainer config={expenseBarConfig} className="h-[250px] w-full max-w-[300px]">
+            <ChartContainer config={pieConfig} className="h-[250px] w-full max-w-[300px]">
               <PieChart accessibilityLayer>
                 <ChartTooltip
                   content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
@@ -119,7 +129,7 @@ function ExpenseInsightsSection({ title, insights }: { title: string; insights: 
 
       <div className="mt-6">
         <p className="text-sm font-medium text-muted-foreground mb-3">Monthly Expense Breakdown</p>
-        <ChartContainer config={expenseBarConfig} className="h-[250px] w-full">
+        <ChartContainer config={barConfig} className="h-[250px] w-full">
           <BarChart data={insights.monthlyExpenses} accessibilityLayer>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" tickLine={false} axisLine={false} />
@@ -128,8 +138,15 @@ function ExpenseInsightsSection({ title, insights }: { title: string; insights: 
               content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
             />
             <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="recurring" stackId="expenses" fill="var(--color-recurring)" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="oneTime" stackId="expenses" fill="var(--color-oneTime)" radius={[4, 4, 0, 0]} />
+            {insights.expenseLabels.map((label, i, arr) => (
+              <Bar
+                key={label}
+                dataKey={label}
+                stackId="expenses"
+                fill={EXPENSE_COLORS[i % EXPENSE_COLORS.length]}
+                radius={i === arr.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+              />
+            ))}
           </BarChart>
         </ChartContainer>
       </div>

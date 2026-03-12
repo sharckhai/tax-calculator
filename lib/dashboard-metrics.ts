@@ -18,7 +18,8 @@ export interface ExpenseInsights {
   topExpenses: ExpenseEntry[];
   recurringTotal: number;
   oneTimeTotal: number;
-  monthlyExpenses: { month: string; recurring: number; oneTime: number }[];
+  monthlyExpenses: Record<string, string | number>[];
+  expenseLabels: string[];
 }
 
 export function calcHoursMetrics(
@@ -49,13 +50,12 @@ export function calcHoursMetrics(
 export function calcExpenseInsights(monthsData: MonthData[], expenseField: "expensesBusiness" | "expensesPrivate"): ExpenseInsights {
   const grouped = new Map<string, { displayLabel: string; totalAmount: number; occurrences: number; isRecurring: boolean }>();
 
-  const monthlyExpenses: { month: string; recurring: number; oneTime: number }[] = [];
+  const monthlyExpenses: Record<string, string | number>[] = [];
   let recurringTotal = 0;
   let oneTimeTotal = 0;
 
   for (const md of monthsData) {
-    let monthRecurring = 0;
-    let monthOneTime = 0;
+    const monthRow: Record<string, string | number> = { month: formatShortMonthLabel(md.month) };
 
     for (const e of md[expenseField]) {
       const trimmed = e.label.trim();
@@ -73,16 +73,16 @@ export function calcExpenseInsights(monthsData: MonthData[], expenseField: "expe
         grouped.set(key, { displayLabel, totalAmount: gross, occurrences: 1, isRecurring: e.isRecurring });
       }
 
+      monthRow[displayLabel] = ((monthRow[displayLabel] as number) || 0) + gross;
+
       if (e.isRecurring) {
-        monthRecurring += gross;
         recurringTotal += gross;
       } else {
-        monthOneTime += gross;
         oneTimeTotal += gross;
       }
     }
 
-    monthlyExpenses.push({ month: formatShortMonthLabel(md.month), recurring: monthRecurring, oneTime: monthOneTime });
+    monthlyExpenses.push(monthRow);
   }
 
   const topExpenses = Array.from(grouped.values())
@@ -95,5 +95,7 @@ export function calcExpenseInsights(monthsData: MonthData[], expenseField: "expe
       isRecurring,
     }));
 
-  return { topExpenses, recurringTotal, oneTimeTotal, monthlyExpenses };
+  const expenseLabels = topExpenses.map((e) => e.label);
+
+  return { topExpenses, recurringTotal, oneTimeTotal, monthlyExpenses, expenseLabels };
 }
